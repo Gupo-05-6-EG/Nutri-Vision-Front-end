@@ -31,6 +31,7 @@ lib/
 │       ├── api_client.dart       # cliente HTTP + injeção do JWT
 │       └── api_exception.dart
 └── features/
+    ├── foods/                    # busca manual de alimentos (RF02.2)
     └── health/                   # tela de diagnóstico (temporária)
 test/                             # testes unitários
 ```
