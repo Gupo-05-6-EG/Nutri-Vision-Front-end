@@ -155,6 +155,8 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
         estimate: estimate,
       );
       if (!mounted) return;
+      // O "desfazer" de um item excluido nao vale mais fora desta tela.
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
@@ -254,15 +256,16 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
   }
 }
 
-/// Cor do badge de cada faixa de confianca.
-Color confidenceColor(ConfidenceLevel level, ColorScheme scheme) {
+/// Cor do badge de cada faixa de confianca. Cores fixas (e nao do tema): o
+/// texto do badge e branco, e o `error` do tema escuro e claro demais pra ele.
+Color confidenceColor(ConfidenceLevel level) {
   switch (level) {
     case ConfidenceLevel.high:
       return const Color(0xFF2E7D32);
     case ConfidenceLevel.medium:
       return const Color(0xFFB26A00);
     case ConfidenceLevel.low:
-      return scheme.error;
+      return const Color(0xFFC62828);
   }
 }
 
@@ -275,7 +278,6 @@ class _TaggedPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       // A camera entrega 4:3; as caixas sao fracoes da foto inteira.
@@ -302,7 +304,7 @@ class _TaggedPhoto extends StatelessWidget {
                       height: box.height * height,
                       child: _Tag(
                         item: item,
-                        color: confidenceColor(item.level, scheme),
+                        color: confidenceColor(item.level),
                       ),
                     ),
               ],
@@ -363,7 +365,7 @@ class _ItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = confidenceColor(item.level, theme.colorScheme);
+    final color = confidenceColor(item.level);
     final percent = (item.confidence * 100).round();
     final kcal =
         estimate == null ? '' : ' · ${formatNumber(estimate!.kcal)} kcal';

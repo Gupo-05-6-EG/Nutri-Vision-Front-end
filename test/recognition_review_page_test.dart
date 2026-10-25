@@ -252,6 +252,22 @@ void main() {
       expect(save.onPressed, isNull);
     });
 
+    testWidgets('registrar fecha o aviso de desfazer de um item excluido', (
+      tester,
+    ) async {
+      await _pumpPage(tester);
+
+      await tester.tap(find.byTooltip('Excluir Feijao carioca'));
+      await tester.pumpAndSettle();
+      expect(find.text('Desfazer'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('abrir'), findsOneWidget);
+      expect(find.text('Desfazer'), findsNothing);
+    });
+
     testWidgets('mostra o motivo quando falta mapeamento na TACO', (
       tester,
     ) async {
