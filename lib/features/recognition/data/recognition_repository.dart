@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../meals/domain/meal_type.dart';
 import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
 
@@ -17,18 +18,19 @@ class RecognitionRepository {
     return NutritionEstimate.fromJson(result as Map<String, dynamic>);
   }
 
-  /// Registra a refeicao com os itens calculados.
+  /// Registra a refeicao com os itens calculados e o [type] escolhido (RF19).
   ///
-  /// O tipo nao e enviado: a API sugere pelo horario de [consumedAt]. O
-  /// `paciente_id` vai no corpo ate a Task 1.2 tirar o paciente do token.
+  /// O `paciente_id` vai no corpo ate a Task 1.6 tirar o paciente do token.
   Future<void> saveMeal({
     required int patientId,
     required DateTime consumedAt,
+    required MealType type,
     required NutritionEstimate estimate,
   }) async {
     await _client.post('/refeicoes', {
       'paciente_id': patientId,
       'consumida_em': consumedAt.toUtc().toIso8601String(),
+      'tipo': type.apiValue,
       'itens': [for (final item in estimate.items) item.toMealItemJson()],
     });
   }

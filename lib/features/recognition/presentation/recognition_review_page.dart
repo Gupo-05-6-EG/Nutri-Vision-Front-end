@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
+import '../../meals/domain/meal_type.dart';
+import '../../meals/presentation/meal_type_selector.dart';
 import '../data/recognition_repository.dart';
 import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
@@ -13,7 +15,8 @@ import 'edit_item_sheet.dart';
 ///
 /// Mostra a foto com as tags de cada alimento, a confianca de cada item e
 /// deixa o paciente corrigir as gramas e o preparo ou excluir itens antes de
-/// registrar. A tabela nutricional e recalculada pela API a cada edicao. Ao
+/// registrar. O tipo da refeicao vem sugerido pelo horario e pode ser trocado
+/// (RF19). A tabela nutricional e recalculada pela API a cada edicao. Ao
 /// registrar, a tela fecha devolvendo `true` (`Navigator.pop`).
 class RecognitionReviewPage extends StatefulWidget {
   const RecognitionReviewPage({
@@ -43,6 +46,8 @@ enum _Status { calculating, ready, failure, saving }
 
 class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
   late final List<DetectedItem> _items = List.of(widget.items);
+  late final DateTime _consumedAt = widget.consumedAt ?? DateTime.now();
+  late MealType _type = MealType.suggestedAt(_consumedAt.toLocal());
 
   /// Identifica o calculo mais recente: respostas antigas sao ignoradas.
   int _requestId = 0;
@@ -151,7 +156,8 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     try {
       await widget.repository.saveMeal(
         patientId: widget.patientId,
-        consumedAt: widget.consumedAt ?? DateTime.now(),
+        consumedAt: _consumedAt,
+        type: _type,
         estimate: estimate,
       );
       if (!mounted) return;
@@ -178,6 +184,11 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _TaggedPhoto(photo: widget.photo, items: _items),
+          const SizedBox(height: 16),
+          MealTypeSelector(
+            value: _type,
+            onChanged: (type) => setState(() => _type = type),
+          ),
           const SizedBox(height: 16),
           if (needsReview.isNotEmpty)
             Padding(
