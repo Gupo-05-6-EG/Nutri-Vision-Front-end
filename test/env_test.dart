@@ -23,6 +23,27 @@ ENVIRONMENT=development
 
       expect(Env.appName, 'Nutri Vision');
       expect(Env.environment, 'development');
+      expect(Env.patientId, 1);
+      expect(Env.dailyGoalKcal, 2000);
+    });
+
+    test('le o paciente e a meta diaria', () {
+      dotenv.testLoad(
+        fileInput: '''
+API_URL=http://api.test
+PACIENTE_ID=7
+META_KCAL_DIARIA=1800
+''',
+      );
+
+      expect(Env.patientId, 7);
+      expect(Env.dailyGoalKcal, 1800);
+    });
+
+    test('falha quando a meta diaria nao e um numero positivo', () {
+      dotenv.testLoad(fileInput: 'META_KCAL_DIARIA=abc');
+
+      expect(() => Env.dailyGoalKcal, throwsStateError);
     });
 
     test('falha com mensagem clara quando API_URL esta ausente', () {
