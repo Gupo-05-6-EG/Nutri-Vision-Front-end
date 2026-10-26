@@ -32,6 +32,7 @@ lib/
 │       └── api_exception.dart
 └── features/
     ├── foods/                    # busca manual de alimentos (RF02.2)
+    ├── meals/                    # histórico de refeições (RF04, RF12)
     ├── recognition/              # revisão do que a IA identificou (RF02.1, RF02.3)
     └── health/                   # tela de diagnóstico (temporária)
 test/                             # testes unitários
