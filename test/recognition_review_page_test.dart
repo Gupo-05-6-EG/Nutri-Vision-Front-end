@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
+import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/recognition/data/recognition_repository.dart';
 import 'package:nutri_vision/features/recognition/domain/detected_item.dart';
 import 'package:nutri_vision/features/recognition/presentation/recognition_review_page.dart';
@@ -293,7 +294,11 @@ void main() {
       final meal = api.savedMeals.single;
       expect(meal['paciente_id'], 4);
       expect(meal['consumida_em'], '2026-10-20T15:30:00.000Z');
-      expect(meal.containsKey('tipo'), isFalse);
+      // Sugerido pelo horario local de consumedAt (depende do fuso da maquina).
+      final suggested = MealType.suggestedAt(
+        DateTime.utc(2026, 10, 20, 15, 30).toLocal(),
+      );
+      expect(meal['tipo'], suggested.apiValue);
       expect((meal['itens'] as List).first, {
         'nome_alimento': 'TACO arroz',
         'quantidade_g': 150,
@@ -302,6 +307,19 @@ void main() {
         'carboidratos_g': 2,
         'gorduras_g': 3,
       });
+    });
+
+    testWidgets('registra com o tipo escolhido no seletor', (tester) async {
+      final api = await _pumpPage(tester);
+
+      await tester.tap(find.byType(DropdownButtonFormField<MealType>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jantar').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+      await tester.pumpAndSettle();
+
+      expect(api.savedMeals.single['tipo'], 'jantar');
     });
   });
 }

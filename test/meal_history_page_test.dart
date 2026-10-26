@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
 import 'package:nutri_vision/features/meals/data/meal_repository.dart';
 import 'package:nutri_vision/features/meals/domain/meal.dart';
+import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/meals/presentation/meal_history_page.dart';
 
 Map<String, Object> _totals(num kcal, num prot, num carbs, num fat) => {
@@ -134,6 +135,33 @@ void main() {
     expect(mealTypeLabel('outro'), 'outro');
   });
 
+  group('MealType', () {
+    test('usa os mesmos valores da API', () {
+      expect(MealType.values.map((t) => t.apiValue), [
+        'cafe_da_manha',
+        'almoco',
+        'lanche',
+        'jantar',
+      ]);
+      expect(MealType.fromApi('jantar'), MealType.dinner);
+      expect(MealType.fromApi('ceia'), isNull);
+    });
+
+    test('sugere pelo horario nas janelas da API', () {
+      MealType at(int hour) => MealType.suggestedAt(DateTime(2026, 1, 1, hour));
+
+      expect(at(5), MealType.breakfast);
+      expect(at(10), MealType.breakfast);
+      expect(at(11), MealType.lunch);
+      expect(at(14), MealType.lunch);
+      expect(at(16), MealType.snack);
+      expect(at(18), MealType.dinner);
+      expect(at(21), MealType.dinner);
+      expect(at(22), MealType.snack);
+      expect(at(3), MealType.snack);
+    });
+  });
+
   group('MealRepository', () {
     test('pede o consumo do dia com paciente e data', () async {
       late Uri requested;
@@ -152,6 +180,22 @@ void main() {
         'paciente_id': '3',
         'data': '2026-03-05',
       });
+    });
+
+    test('manda o tipo quando filtrado', () async {
+      late Uri requested;
+      final repository = _repository((request) async {
+        requested = request.url;
+        return _json(_dia);
+      });
+
+      await repository.dailyConsumption(
+        patientId: 3,
+        day: DateTime(2026, 3, 5),
+        type: MealType.lunch,
+      );
+
+      expect(requested.queryParameters['tipo'], 'almoco');
     });
   });
 
@@ -212,6 +256,26 @@ void main() {
       expect(find.text('Ontem'), findsOneWidget);
       expect(find.text('Nenhuma refeição registrada neste dia.'), findsOne);
       expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+    });
+
+    testWidgets('filtra por tipo e recarrega o dia', (tester) async {
+      final types = <String?>[];
+      await _pumpPage(
+        tester,
+        _repository((request) async {
+          final type = request.url.queryParameters['tipo'];
+          types.add(type);
+          return _json(type == null ? _dia : _diaVazio);
+        }),
+      );
+
+      await tester.tap(find.byType(DropdownButtonFormField<MealType?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jantar').last);
+      await tester.pumpAndSettle();
+
+      expect(types, [null, 'jantar']);
+      expect(find.text('Nenhum jantar registrado neste dia.'), findsOne);
     });
 
     testWidgets('mostra erro e tenta de novo', (tester) async {

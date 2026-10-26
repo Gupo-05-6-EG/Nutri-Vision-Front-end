@@ -4,6 +4,8 @@
 /// hora local fica com quem exibe (`toLocal()`).
 library;
 
+import 'meal_type.dart';
+
 double _number(Object? value) => (value as num).toDouble();
 
 /// Soma de calorias e macros (de uma refeicao ou de um dia).
@@ -113,16 +115,4 @@ class DailyConsumption {
 }
 
 /// Rotulo em pt-BR do tipo de refeicao devolvido pela API (RF19).
-String mealTypeLabel(String type) {
-  switch (type) {
-    case 'cafe_da_manha':
-      return 'Café da manhã';
-    case 'almoco':
-      return 'Almoço';
-    case 'lanche':
-      return 'Lanche';
-    case 'jantar':
-      return 'Jantar';
-  }
-  return type;
-}
+String mealTypeLabel(String type) => MealType.fromApi(type)?.label ?? type;

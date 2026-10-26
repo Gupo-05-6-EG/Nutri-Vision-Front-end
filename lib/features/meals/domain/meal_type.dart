@@ -1,11 +1,12 @@
-/// Tipos de refeição usados na organização dos registros.
+/// Tipos de refeição aceitos pela API (RF19).
+///
+/// Os valores precisam bater com `TipoRefeicao` do back-end: qualquer outro
+/// valor é recusado com `422`.
 enum MealType {
   breakfast('cafe_da_manha', 'Café da manhã'),
-  morningSnack('lanche_da_manha', 'Lanche da manhã'),
   lunch('almoco', 'Almoço'),
-  afternoonSnack('lanche_da_tarde', 'Lanche da tarde'),
-  dinner('jantar', 'Jantar'),
-  supper('ceia', 'Ceia');
+  snack('lanche', 'Lanche'),
+  dinner('jantar', 'Jantar');
 
   const MealType(this.apiValue, this.label);
 
@@ -19,14 +20,13 @@ enum MealType {
     return null;
   }
 
-  /// Sugestão padrão pelo horário local, em faixas inclusivas no início.
+  /// Sugestão pelo horário local, nas mesmas janelas que a API usa quando o
+  /// tipo não é informado. Fora delas cai em lanche.
   static MealType suggestedAt(DateTime time) {
-    final minutes = time.hour * 60 + time.minute;
-    if (minutes < 10 * 60) return breakfast;
-    if (minutes < 11 * 60 + 30) return morningSnack;
-    if (minutes < 14 * 60 + 30) return lunch;
-    if (minutes < 17 * 60 + 30) return afternoonSnack;
-    if (minutes < 21 * 60) return dinner;
-    return supper;
+    final hour = time.hour;
+    if (hour >= 5 && hour < 11) return breakfast;
+    if (hour >= 11 && hour < 15) return lunch;
+    if (hour >= 18 && hour < 22) return dinner;
+    return snack;
   }
 }

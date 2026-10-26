@@ -4,11 +4,15 @@ import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
 import '../data/meal_repository.dart';
 import '../domain/meal.dart';
+import '../domain/meal_type.dart';
+import 'meal_type_filter.dart';
 
 /// Historico de refeicoes (RF04, RF12).
 ///
 /// Feed cronologico do dia escolhido (abre no dia atual), com o total de
 /// calorias em uma barra de progresso contra a meta diaria e os macros do dia.
+/// Pode filtrar por tipo de refeicao (RF19); com filtro, os totais sao so os
+/// daquele tipo.
 class MealHistoryPage extends StatefulWidget {
   const MealHistoryPage({
     required this.repository,
@@ -36,6 +40,7 @@ enum _Status { loading, success, failure }
 class _MealHistoryPageState extends State<MealHistoryPage> {
   late final DateTime _today = _dateOnly(widget.today ?? DateTime.now());
   late DateTime _day = _today;
+  MealType? _type;
 
   /// Identifica a carga mais recente: respostas de dias antigos sao ignoradas.
   int _requestId = 0;
@@ -61,6 +66,7 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
       final consumption = await widget.repository.dailyConsumption(
         patientId: widget.patientId,
         day: _day,
+        type: _type,
       );
       if (!mounted || requestId != _requestId) return;
       setState(() {
@@ -85,6 +91,11 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
 
   void _changeDay(int days) {
     _day = DateTime(_day.year, _day.month, _day.day + days);
+    _load();
+  }
+
+  void _changeType(MealType? type) {
+    _type = type;
     _load();
   }
 
@@ -128,6 +139,10 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: MealTypeFilter(value: _type, onChanged: _changeType),
+          ),
           Expanded(child: _buildBody()),
         ],
       ),
@@ -157,9 +172,12 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
               ),
               const SizedBox(height: 16),
               if (consumption.meals.isEmpty)
-                const _Message(
+                _Message(
                   icon: Icons.restaurant,
-                  text: 'Nenhuma refeição registrada neste dia.',
+                  text: _type == null
+                      ? 'Nenhuma refeição registrada neste dia.'
+                      : 'Nenhum ${_type!.label.toLowerCase()} registrado '
+                          'neste dia.',
                 )
               else
                 for (final meal in consumption.meals) _MealCard(meal: meal),
