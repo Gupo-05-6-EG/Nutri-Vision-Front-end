@@ -99,5 +99,91 @@ void main() {
 
       expect(await client.delete('/refeicoes/1'), isNull);
     });
+
+    test('PUT envia JSON com token e DELETE usa o metodo certo', () async {
+      final chamadas = <http.Request>[];
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((request) async {
+          chamadas.add(request);
+          return http.Response('{"id": 1}', 200);
+        }),
+      )..authToken = 'abc';
+
+      await client.put('/refeicoes/1', {'observacao': 'sem sal'});
+      await client.delete('/refeicoes/1');
+
+      expect(chamadas.map((c) => c.method), ['PUT', 'DELETE']);
+      expect(jsonDecode(chamadas.first.body), {'observacao': 'sem sal'});
+      expect(chamadas.first.headers['Content-Type'], 'application/json');
+      for (final chamada in chamadas) {
+        expect(chamada.headers['Authorization'], 'Bearer abc');
+      }
+      expect(chamadas.last.headers.containsKey('Content-Type'), isFalse);
+    });
+
+    test('monta a query string com valores nao textuais', () async {
+      Uri? chamada;
+      final client = ApiClient(
+        baseUrl: 'http://api.test/api/v1',
+        httpClient: MockClient((request) async {
+          chamada = request.url;
+          return http.Response('[]', 200);
+        }),
+      );
+
+      await client.get('/refeicoes', query: {'paciente_id': 7, 'limite': 50});
+
+      expect(chamada!.queryParameters, {'paciente_id': '7', 'limite': '50'});
+    });
+
+    test('decodifica acentos em UTF-8 mesmo sem charset no header', () async {
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient(
+          (request) async => http.Response.bytes(
+            utf8.encode('{"nome": "Feijão, carioca, cozido"}'),
+            200,
+          ),
+        ),
+      );
+
+      expect(await client.get('/x'), {'nome': 'Feijão, carioca, cozido'});
+    });
+
+    test('falha de rede vira ApiException sem statusCode', () async {
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient(
+          (request) async => throw http.ClientException('sem rede'),
+        ),
+      );
+
+      await expectLater(
+        client.post('/refeicoes', {}),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', isNull)
+              .having((e) => e.message, 'message', contains('sem rede')),
+        ),
+      );
+    });
+
+    test('erro sem corpo usa o status na mensagem', () async {
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((request) async => http.Response('', 500)),
+      );
+
+      await expectLater(
+        client.get('/x'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.message, 'message', 'HTTP 500')
+              .having((e) => e.isUnauthorized, 'isUnauthorized', isFalse)
+              .having((e) => e.toString(), 'toString', contains('500')),
+        ),
+      );
+    });
   });
 }
