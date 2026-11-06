@@ -55,6 +55,29 @@ class AuthRepository {
     if (professional is! Map) {
       throw const ApiException('Resposta inesperada ao usar o codigo.');
     }
-    return LinkedProfessional(name: (professional['nome'] ?? '').toString());
+    final id = professional['id'];
+    final photo = professional['foto_url'];
+    return LinkedProfessional(
+      id: id is int ? id : null,
+      name: (professional['nome'] ?? '').toString(),
+      photoUrl: photo is String && photo.isNotEmpty ? photo : null,
+      status:
+          (data is Map ? data['status'] : null)?.toString() ??
+          LinkedProfessional.pendingStatus,
+    );
   }
+
+  static String acceptLinkPath(int professionalId) =>
+      '$linkPath/$professionalId/aceitar';
+
+  static String refuseLinkPath(int professionalId) =>
+      '$linkPath/$professionalId/recusar';
+
+  /// O paciente aceita o vinculo pendente com o nutricionista.
+  Future<void> acceptLink(int professionalId) =>
+      _client.post(acceptLinkPath(professionalId), const {});
+
+  /// O paciente recusa o vinculo pendente com o nutricionista.
+  Future<void> refuseLink(int professionalId) =>
+      _client.post(refuseLinkPath(professionalId), const {});
 }

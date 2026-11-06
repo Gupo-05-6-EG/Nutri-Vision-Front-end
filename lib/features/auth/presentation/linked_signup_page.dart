@@ -4,6 +4,7 @@ import '../application/auth_controller.dart';
 import '../data/auth_models.dart';
 import 'auth_error_message.dart';
 import 'auth_validators.dart';
+import 'link_confirmation_page.dart';
 import 'widgets/auth_widgets.dart';
 
 /// Passo 2 do cadastro "Tenho nutricionista": cria a conta e, em seguida,
@@ -68,8 +69,9 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
 
     // A conta ja existe e a sessao esta aberta: o codigo so pode ser usado
     // agora, com o token do paciente.
+    final LinkedProfessional professional;
     try {
-      await widget.auth.linkProfessional(widget.linkCode);
+      professional = await widget.auth.linkProfessional(widget.linkCode);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -83,6 +85,18 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
     }
 
     if (!mounted) return;
+    if (professional.isPending && professional.id != null) {
+      // O vinculo so vale depois que o paciente aceita.
+      await Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => LinkConfirmationPage(
+            auth: widget.auth,
+            professional: professional,
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
@@ -107,7 +121,8 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
           ),
           const SizedBox(height: 16),
           AuthMessageBanner(
-            message: 'Não foi possível vincular ao nutricionista.\n'
+            message:
+                'Não foi possível vincular ao nutricionista.\n'
                 '$_linkError\n'
                 'Você poderá tentar de novo depois.',
           ),

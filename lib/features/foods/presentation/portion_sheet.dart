@@ -89,10 +89,7 @@ class _PortionSheetState extends State<PortionSheet> {
             const SizedBox(height: 16),
             SegmentedButton<_InputMode>(
               segments: const [
-                ButtonSegment(
-                  value: _InputMode.grams,
-                  label: Text('Peso (g)'),
-                ),
+                ButtonSegment(value: _InputMode.grams, label: Text('Peso (g)')),
                 ButtonSegment(
                   value: _InputMode.measure,
                   label: Text('Medida caseira'),

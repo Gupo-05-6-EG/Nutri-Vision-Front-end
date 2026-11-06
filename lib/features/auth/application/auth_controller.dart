@@ -18,9 +18,9 @@ class AuthController extends ChangeNotifier {
     required ApiClient client,
     required AuthRepository repository,
     required TokenStorage storage,
-  })  : _client = client,
-        _repository = repository,
-        _storage = storage {
+  }) : _client = client,
+       _repository = repository,
+       _storage = storage {
     _client.onUnauthorized = _handleUnauthorized;
   }
 
@@ -86,6 +86,14 @@ class AuthController extends ChangeNotifier {
   /// Resgata o codigo de vinculo do nutricionista (paciente ja logado).
   Future<LinkedProfessional> linkProfessional(String code) =>
       _repository.linkProfessional(code);
+
+  /// Aceita o vinculo pendente com o nutricionista.
+  Future<void> acceptLink(int professionalId) =>
+      _repository.acceptLink(professionalId);
+
+  /// Recusa o vinculo pendente com o nutricionista.
+  Future<void> refuseLink(int professionalId) =>
+      _repository.refuseLink(professionalId);
 
   Future<void> logout() => _endSession();
 

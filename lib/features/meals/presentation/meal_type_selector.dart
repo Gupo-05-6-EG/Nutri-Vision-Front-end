@@ -17,18 +17,13 @@ class MealTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<MealType>(
-        initialValue: value,
-        decoration: InputDecoration(labelText: label),
-        items: MealType.values
-            .map(
-              (type) => DropdownMenuItem(
-                value: type,
-                child: Text(type.label),
-              ),
-            )
-            .toList(),
-        onChanged: (type) {
-          if (type != null) onChanged(type);
-        },
-      );
+    initialValue: value,
+    decoration: InputDecoration(labelText: label),
+    items: MealType.values
+        .map((type) => DropdownMenuItem(value: type, child: Text(type.label)))
+        .toList(),
+    onChanged: (type) {
+      if (type != null) onChanged(type);
+    },
+  );
 }

@@ -11,11 +11,11 @@ import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/meals/presentation/meal_history_page.dart';
 
 Map<String, Object> _totals(num kcal, num prot, num carbs, num fat) => {
-      'calorias_kcal': kcal,
-      'proteinas_g': prot,
-      'carboidratos_g': carbs,
-      'gorduras_g': fat,
-    };
+  'calorias_kcal': kcal,
+  'proteinas_g': prot,
+  'carboidratos_g': carbs,
+  'gorduras_g': fat,
+};
 
 Map<String, Object?> _meal({
   required int id,
@@ -24,25 +24,24 @@ Map<String, Object?> _meal({
   required String food,
   required num grams,
   required num kcal,
-}) =>
+}) => {
+  'id': id,
+  'paciente_id': 1,
+  'consumida_em': consumedAt,
+  'tipo': type,
+  'observacao': null,
+  'criada_em': consumedAt,
+  'atualizada_em': consumedAt,
+  'itens': [
     {
-      'id': id,
-      'paciente_id': 1,
-      'consumida_em': consumedAt,
-      'tipo': type,
-      'observacao': null,
-      'criada_em': consumedAt,
-      'atualizada_em': consumedAt,
-      'itens': [
-        {
-          'id': id * 10,
-          'nome_alimento': food,
-          'quantidade_g': grams,
-          ..._totals(kcal, 10, 20, 5),
-        },
-      ],
-      'totais': _totals(kcal, 10, 20, 5),
-    };
+      'id': id * 10,
+      'nome_alimento': food,
+      'quantidade_g': grams,
+      ..._totals(kcal, 10, 20, 5),
+    },
+  ],
+  'totais': _totals(kcal, 10, 20, 5),
+};
 
 // Chega fora de ordem de proposito: o feed tem que ser cronologico.
 final _dia = <String, Object?>{

@@ -93,14 +93,15 @@ void main() {
 
     test('avisa onUnauthorized quando recebe 401 com token em uso', () async {
       var avisos = 0;
-      final client = ApiClient(
-        baseUrl: 'http://api.test',
-        httpClient: MockClient(
-          (request) async => http.Response('expirou', 401),
-        ),
-      )
-        ..authToken = 'jwt-expirado'
-        ..onUnauthorized = () => avisos++;
+      final client =
+          ApiClient(
+              baseUrl: 'http://api.test',
+              httpClient: MockClient(
+                (request) async => http.Response('expirou', 401),
+              ),
+            )
+            ..authToken = 'jwt-expirado'
+            ..onUnauthorized = () => avisos++;
 
       await expectLater(client.get('/privado'), throwsA(isA<ApiException>()));
 

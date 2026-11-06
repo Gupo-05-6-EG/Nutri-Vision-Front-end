@@ -60,10 +60,9 @@ class _FakeApi {
     final items = body['itens'] as List<dynamic>;
     calculations.add(items);
     if (failCalculationWith != null) {
-      return _json(
-        {'detail': "Sem mapeamento TACO para a classe 'arroz'"},
-        status: failCalculationWith!,
-      );
+      return _json({
+        'detail': "Sem mapeamento TACO para a classe 'arroz'",
+      }, status: failCalculationWith!);
     }
     final out = [
       for (final item in items.cast<Map<String, dynamic>>())

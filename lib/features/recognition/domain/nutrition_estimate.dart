@@ -34,13 +34,13 @@ class EstimatedItem {
 
   /// Item de `POST /refeicoes`.
   Map<String, Object> toMealItemJson() => {
-        'nome_alimento': tacoName,
-        'quantidade_g': roundTo2(grams),
-        'calorias_kcal': roundTo2(kcal),
-        'proteinas_g': roundTo2(protein),
-        'carboidratos_g': roundTo2(carbs),
-        'gorduras_g': roundTo2(fat),
-      };
+    'nome_alimento': tacoName,
+    'quantidade_g': roundTo2(grams),
+    'calorias_kcal': roundTo2(kcal),
+    'proteinas_g': roundTo2(protein),
+    'carboidratos_g': roundTo2(carbs),
+    'gorduras_g': roundTo2(fat),
+  };
 }
 
 /// Tabela nutricional da refeicao revisada: um item por alimento e os totais.

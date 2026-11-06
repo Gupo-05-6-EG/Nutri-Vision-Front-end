@@ -155,10 +155,7 @@ void main() {
       await _search(tester, 'cozido');
 
       expect(find.text('Arroz, tipo 1, cozido'), findsOneWidget);
-      expect(
-        find.text('Cereais e derivados · 128 kcal/100 g'),
-        findsOneWidget,
-      );
+      expect(find.text('Cereais e derivados · 128 kcal/100 g'), findsOneWidget);
       expect(find.text('Feijao, carioca, cozido'), findsOneWidget);
     });
 

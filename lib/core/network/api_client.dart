@@ -10,7 +10,7 @@ import 'api_exception.dart';
 /// so precise preencher esse campo depois do login.
 class ApiClient {
   ApiClient({required this.baseUrl, http.Client? httpClient})
-      : _http = httpClient ?? http.Client();
+    : _http = httpClient ?? http.Client();
 
   final String baseUrl;
   final http.Client _http;
@@ -22,33 +22,33 @@ class ApiClient {
   void Function()? onUnauthorized;
 
   Map<String, String> _headers({bool hasBody = false}) => {
-        'Accept': 'application/json',
-        if (hasBody) 'Content-Type': 'application/json',
-        if (authToken != null) 'Authorization': 'Bearer $authToken',
-      };
+    'Accept': 'application/json',
+    if (hasBody) 'Content-Type': 'application/json',
+    if (authToken != null) 'Authorization': 'Bearer $authToken',
+  };
 
   Uri _uri(String path, [Map<String, dynamic>? query]) => Uri.parse(
-        '$baseUrl$path',
-      ).replace(queryParameters: query?.map((k, v) => MapEntry(k, '$v')));
+    '$baseUrl$path',
+  ).replace(queryParameters: query?.map((k, v) => MapEntry(k, '$v')));
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
       _send(() => _http.get(_uri(path, query), headers: _headers()));
 
   Future<dynamic> post(String path, Object? body) => _send(
-        () => _http.post(
-          _uri(path),
-          headers: _headers(hasBody: true),
-          body: jsonEncode(body),
-        ),
-      );
+    () => _http.post(
+      _uri(path),
+      headers: _headers(hasBody: true),
+      body: jsonEncode(body),
+    ),
+  );
 
   Future<dynamic> put(String path, Object? body) => _send(
-        () => _http.put(
-          _uri(path),
-          headers: _headers(hasBody: true),
-          body: jsonEncode(body),
-        ),
-      );
+    () => _http.put(
+      _uri(path),
+      headers: _headers(hasBody: true),
+      body: jsonEncode(body),
+    ),
+  );
 
   Future<dynamic> delete(String path) =>
       _send(() => _http.delete(_uri(path), headers: _headers()));

@@ -15,20 +15,18 @@ class MealTypeFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<MealType?>(
-        initialValue: value,
-        decoration: const InputDecoration(labelText: 'Filtrar por refeição'),
-        items: [
-          const DropdownMenuItem<MealType?>(
-            value: null,
-            child: Text('Todas as refeições'),
-          ),
-          ...MealType.values.map(
-            (type) => DropdownMenuItem<MealType?>(
-              value: type,
-              child: Text(type.label),
-            ),
-          ),
-        ],
-        onChanged: onChanged,
-      );
+    initialValue: value,
+    decoration: const InputDecoration(labelText: 'Filtrar por refeição'),
+    items: [
+      const DropdownMenuItem<MealType?>(
+        value: null,
+        child: Text('Todas as refeições'),
+      ),
+      ...MealType.values.map(
+        (type) =>
+            DropdownMenuItem<MealType?>(value: type, child: Text(type.label)),
+      ),
+    ],
+    onChanged: onChanged,
+  );
 }

@@ -168,9 +168,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       if (!mounted) return;
       setState(() => _status = _Status.ready);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível registrar a refeição.'),
-        ),
+        const SnackBar(content: Text('Não foi possível registrar a refeição.')),
       );
     }
   }
@@ -378,8 +376,9 @@ class _ItemTile extends StatelessWidget {
     final theme = Theme.of(context);
     final color = confidenceColor(item.level);
     final percent = (item.confidence * 100).round();
-    final kcal =
-        estimate == null ? '' : ' · ${formatNumber(estimate!.kcal)} kcal';
+    final kcal = estimate == null
+        ? ''
+        : ' · ${formatNumber(estimate!.kcal)} kcal';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
