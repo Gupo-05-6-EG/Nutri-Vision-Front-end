@@ -138,7 +138,8 @@ class _LinkingPageState extends State<LinkingPage> {
                             ],
                             onFieldSubmitted: (_) => _findNutritionist(),
                             decoration: const InputDecoration(
-                              labelText: 'C\u{00f3}digo de vincula\u{00e7}\u{00e3}o',
+                              labelText:
+                                  'C\u{00f3}digo de vincula\u{00e7}\u{00e3}o',
                               hintText: '000000',
                               prefixIcon: Icon(Icons.pin_outlined),
                               counterText: '',
@@ -173,7 +174,8 @@ class _LinkingPageState extends State<LinkingPage> {
                           FilledButton.icon(
                             onPressed: _loading ? null : _confirmLink,
                             icon: const Icon(Icons.check),
-                            label: const Text('Confirmar vincula\u{00e7}\u{00e3}o'),
+                            label: const Text(
+                                'Confirmar vincula\u{00e7}\u{00e3}o'),
                           ),
                         ],
                       ],
