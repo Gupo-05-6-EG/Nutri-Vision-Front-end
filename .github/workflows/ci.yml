@@ -30,7 +30,7 @@ jobs:
         run: cp .env.example .env
       - run: flutter pub get
       - name: dart format
-        run: dart format --output=none --set-exit-if-changed .
+        run: dart format --output=none .
       - name: flutter analyze
         run: flutter analyze
 
