@@ -121,8 +121,7 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
           ),
           const SizedBox(height: 16),
           AuthMessageBanner(
-            message:
-                'Não foi possível vincular ao nutricionista.\n'
+            message: 'Não foi possível vincular ao nutricionista.\n'
                 '$_linkError\n'
                 'Você poderá tentar de novo depois.',
           ),

@@ -18,9 +18,9 @@ class AuthController extends ChangeNotifier {
     required ApiClient client,
     required AuthRepository repository,
     required TokenStorage storage,
-  }) : _client = client,
-       _repository = repository,
-       _storage = storage {
+  })  : _client = client,
+        _repository = repository,
+        _storage = storage {
     _client.onUnauthorized = _handleUnauthorized;
   }
 

@@ -83,8 +83,7 @@ class _ApiStatusPageState extends State<ApiStatusPage> {
               return _StatusCard(
                 icon: Icons.cloud_done,
                 title: 'API conectada',
-                detail:
-                    '${snapshot.data?['service']} '
+                detail: '${snapshot.data?['service']} '
                     '(${snapshot.data?['environment']})\n${Env.apiUrl}',
                 onRetry: _retry,
               );

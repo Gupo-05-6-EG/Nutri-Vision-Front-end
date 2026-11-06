@@ -34,13 +34,13 @@ String _jwt(DateTime exp) {
 
 /// Resposta no formato do `TokenOut` da API.
 http.Response _tokenOut(String token, {int status = 200}) => http.Response(
-  jsonEncode({
-    'access_token': token,
-    'token_type': 'bearer',
-    'usuario': {'id': 7, 'nome': 'Alex', 'perfil': 'paciente'},
-  }),
-  status,
-);
+      jsonEncode({
+        'access_token': token,
+        'token_type': 'bearer',
+        'usuario': {'id': 7, 'nome': 'Alex', 'perfil': 'paciente'},
+      }),
+      status,
+    );
 
 AuthController _controller(
   http.Client httpClient,

@@ -53,10 +53,10 @@ class PatientSignup {
   final String? activityLevel;
 
   Map<String, dynamic> toJson() => {
-    'nome': name,
-    'email': email,
-    'senha': password,
-  };
+        'nome': name,
+        'email': email,
+        'senha': password,
+      };
 
   /// Corpo da triagem, ou `null` se o cadastro nao trouxe os dados corporais
   /// (fluxo "Tenho nutricionista").

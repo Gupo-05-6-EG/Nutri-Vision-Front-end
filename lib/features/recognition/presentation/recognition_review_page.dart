@@ -376,9 +376,8 @@ class _ItemTile extends StatelessWidget {
     final theme = Theme.of(context);
     final color = confidenceColor(item.level);
     final percent = (item.confidence * 100).round();
-    final kcal = estimate == null
-        ? ''
-        : ' · ${formatNumber(estimate!.kcal)} kcal';
+    final kcal =
+        estimate == null ? '' : ' · ${formatNumber(estimate!.kcal)} kcal';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

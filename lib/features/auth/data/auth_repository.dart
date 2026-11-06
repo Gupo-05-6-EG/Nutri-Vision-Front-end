@@ -61,8 +61,7 @@ class AuthRepository {
       id: id is int ? id : null,
       name: (professional['nome'] ?? '').toString(),
       photoUrl: photo is String && photo.isNotEmpty ? photo : null,
-      status:
-          (data is Map ? data['status'] : null)?.toString() ??
+      status: (data is Map ? data['status'] : null)?.toString() ??
           LinkedProfessional.pendingStatus,
     );
   }

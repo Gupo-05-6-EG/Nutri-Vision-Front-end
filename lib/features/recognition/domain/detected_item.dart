@@ -119,10 +119,10 @@ class DetectedItem {
 
   /// Corpo de um item em `POST /calculo-nutricional`.
   Map<String, Object> toCalculationJson() => {
-    'classe': foodClass,
-    'metodo_preparo': preparation.apiValue,
-    'gramas': roundTo2(grams),
-  };
+        'classe': foodClass,
+        'metodo_preparo': preparation.apiValue,
+        'gramas': roundTo2(grams),
+      };
 }
 
 /// A API aceita no maximo duas casas decimais nos valores.

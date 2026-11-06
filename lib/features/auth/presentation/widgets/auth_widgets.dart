@@ -139,12 +139,10 @@ class AuthMessageBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final background = isError
-        ? scheme.errorContainer
-        : scheme.secondaryContainer;
-    final foreground = isError
-        ? scheme.onErrorContainer
-        : scheme.onSecondaryContainer;
+    final background =
+        isError ? scheme.errorContainer : scheme.secondaryContainer;
+    final foreground =
+        isError ? scheme.onErrorContainer : scheme.onSecondaryContainer;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -171,31 +169,31 @@ class AuthMessageBanner extends StatelessWidget {
 /// Checkbox de aceite dos termos; so passa na validacao do Form se marcado.
 class TermsCheckboxField extends FormField<bool> {
   TermsCheckboxField({super.key})
-    : super(
-        initialValue: false,
-        validator: (value) => value == true
-            ? null
-            : 'Aceite os Termos de Uso e a Política de Privacidade.',
-        builder: (state) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CheckboxListTile(
-              value: state.value ?? false,
-              onChanged: state.didChange,
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              title: const Text(
-                'Li e aceito os Termos de Uso e a Política de Privacidade.',
-              ),
-            ),
-            if (state.hasError)
-              Text(
-                state.errorText!,
-                style: TextStyle(
-                  color: Theme.of(state.context).colorScheme.error,
+      : super(
+          initialValue: false,
+          validator: (value) => value == true
+              ? null
+              : 'Aceite os Termos de Uso e a Política de Privacidade.',
+          builder: (state) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CheckboxListTile(
+                value: state.value ?? false,
+                onChanged: state.didChange,
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Li e aceito os Termos de Uso e a Política de Privacidade.',
                 ),
               ),
-          ],
-        ),
-      );
+              if (state.hasError)
+                Text(
+                  state.errorText!,
+                  style: TextStyle(
+                    color: Theme.of(state.context).colorScheme.error,
+                  ),
+                ),
+            ],
+          ),
+        );
 }

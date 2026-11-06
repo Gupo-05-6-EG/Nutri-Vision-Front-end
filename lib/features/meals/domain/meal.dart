@@ -96,12 +96,11 @@ class DailyConsumption {
   const DailyConsumption({required this.meals, required this.totals});
 
   factory DailyConsumption.fromJson(Map<String, dynamic> json) {
-    final meals =
-        (json['refeicoes'] as List<dynamic>)
-            .cast<Map<String, dynamic>>()
-            .map(Meal.fromJson)
-            .toList()
-          ..sort((a, b) => a.consumedAt.compareTo(b.consumedAt));
+    final meals = (json['refeicoes'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .map(Meal.fromJson)
+        .toList()
+      ..sort((a, b) => a.consumedAt.compareTo(b.consumedAt));
     return DailyConsumption(
       meals: meals,
       totals: NutritionTotals.fromJson(json['totais'] as Map<String, dynamic>),

@@ -177,7 +177,7 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
                   text: _type == null
                       ? 'Nenhuma refeição registrada neste dia.'
                       : 'Nenhum ${_type!.label.toLowerCase()} registrado '
-                            'neste dia.',
+                          'neste dia.',
                 )
               else
                 for (final meal in consumption.meals) _MealCard(meal: meal),

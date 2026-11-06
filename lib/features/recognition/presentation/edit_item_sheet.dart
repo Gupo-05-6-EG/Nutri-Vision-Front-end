@@ -89,7 +89,7 @@ class _EditItemSheetState extends State<EditItemSheet> {
                 errorText: _isValid
                     ? null
                     : 'Porção inválida: use mais de 0 g e no máximo '
-                          '$maxPortionGrams g.',
+                        '$maxPortionGrams g.',
                 border: const OutlineInputBorder(),
               ),
             ),
