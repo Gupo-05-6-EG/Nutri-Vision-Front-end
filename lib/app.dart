@@ -62,7 +62,10 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
         builder: (context, _) => switch (_auth.status) {
           AuthStatus.unknown => const _SplashPage(),
           AuthStatus.unauthenticated => WelcomePage(auth: _auth),
-          AuthStatus.authenticated => HomePlaceholderPage(auth: _auth),
+          AuthStatus.authenticated => HomePlaceholderPage(
+              auth: _auth,
+              client: _client,
+            ),
         },
       ),
     );
