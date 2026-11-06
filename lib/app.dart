@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/config/app_theme.dart';
 import 'core/config/env.dart';
 import 'core/network/api_client.dart';
-import 'features/health/presentation/api_status_page.dart';
+import 'features/linking/presentation/linking_page.dart';
 
 class NutriVisionApp extends StatefulWidget {
   const NutriVisionApp({super.key});
@@ -28,7 +28,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
       debugShowCheckedModeBanner: Env.environment != 'production',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      home: ApiStatusPage(client: _client),
+      home: LinkingPage(client: _client),
     );
   }
 }
