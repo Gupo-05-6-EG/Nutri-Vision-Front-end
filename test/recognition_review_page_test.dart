@@ -61,7 +61,9 @@ class _FakeApi {
     calculations.add(items);
     if (failCalculationWith != null) {
       return _json(
-        {'detail': "Sem mapeamento TACO para a classe 'arroz'"},
+        {
+          'detail': "Sem mapeamento TACO para a classe 'arroz'",
+        },
         status: failCalculationWith!,
       );
     }

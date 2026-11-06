@@ -77,9 +77,7 @@ class Meal {
       type: json['tipo'] as String,
       note: json['observacao'] as String?,
       items: items.map(MealItem.fromJson).toList(),
-      totals: NutritionTotals.fromJson(
-        json['totais'] as Map<String, dynamic>,
-      ),
+      totals: NutritionTotals.fromJson(json['totais'] as Map<String, dynamic>),
     );
   }
 

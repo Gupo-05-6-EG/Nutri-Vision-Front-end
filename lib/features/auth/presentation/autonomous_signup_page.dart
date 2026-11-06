@@ -296,10 +296,7 @@ class _AutonomousSignupPageState extends State<AutonomousSignupPage> {
             ),
           ),
         if (_activityError)
-          Text(
-            'Selecione uma opção.',
-            style: TextStyle(color: scheme.error),
-          ),
+          Text('Selecione uma opção.', style: TextStyle(color: scheme.error)),
       ],
     );
   }

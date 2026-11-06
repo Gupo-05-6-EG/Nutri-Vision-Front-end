@@ -7,10 +7,24 @@ class AuthResult {
 }
 
 /// Nutricionista com quem o paciente acabou de se vincular.
+///
+/// O vinculo nasce `pendente` e so vale depois que o paciente aceita.
 class LinkedProfessional {
-  const LinkedProfessional({required this.name});
+  const LinkedProfessional({
+    required this.name,
+    this.id,
+    this.photoUrl,
+    this.status = pendingStatus,
+  });
 
+  static const pendingStatus = 'pendente';
+
+  final int? id;
   final String name;
+  final String? photoUrl;
+  final String status;
+
+  bool get isPending => status == pendingStatus;
 }
 
 /// Dados do cadastro do paciente.
