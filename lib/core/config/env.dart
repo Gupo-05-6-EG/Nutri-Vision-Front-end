@@ -25,4 +25,20 @@ class Env {
 
   static String get environment =>
       dotenv.maybeGet('ENVIRONMENT') ?? 'development';
+
+  static double _optionalNumber(String key, double fallback) {
+    final value = dotenv.maybeGet(key);
+    if (value == null || value.isEmpty) return fallback;
+    final number = double.tryParse(value);
+    if (number == null || number <= 0) {
+      throw StateError('Variavel $key no .env deve ser um numero positivo.');
+    }
+    return number;
+  }
+
+  /// Paciente usado nas chamadas enquanto nao existe login (Task 1.2).
+  static int get patientId => _optionalNumber('PACIENTE_ID', 1).toInt();
+
+  /// Meta diaria de calorias enquanto o plano alimentar nao vem da API.
+  static double get dailyGoalKcal => _optionalNumber('META_KCAL_DIARIA', 2000);
 }

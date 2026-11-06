@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../core/config/env.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../../meals/data/meal_repository.dart';
+import '../../meals/presentation/meal_history_page.dart';
 
 /// Tela temporaria de diagnostico.
 ///
@@ -33,10 +35,31 @@ class _ApiStatusPageState extends State<ApiStatusPage> {
 
   void _retry() => setState(() => _health = _fetch());
 
+  void _openHistory() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => MealHistoryPage(
+          repository: MealRepository(widget.client),
+          patientId: Env.patientId,
+          dailyGoalKcal: Env.dailyGoalKcal,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(Env.appName)),
+      appBar: AppBar(
+        title: Text(Env.appName),
+        actions: [
+          IconButton(
+            tooltip: 'Histórico de refeições',
+            icon: const Icon(Icons.history),
+            onPressed: _openHistory,
+          ),
+        ],
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

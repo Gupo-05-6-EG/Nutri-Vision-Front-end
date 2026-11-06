@@ -91,6 +91,37 @@ void main() {
       );
     });
 
+    test('avisa onUnauthorized quando recebe 401 com token em uso', () async {
+      var avisos = 0;
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient(
+          (request) async => http.Response('expirou', 401),
+        ),
+      )
+        ..authToken = 'jwt-expirado'
+        ..onUnauthorized = () => avisos++;
+
+      await expectLater(client.get('/privado'), throwsA(isA<ApiException>()));
+
+      expect(avisos, 1);
+    });
+
+    test('nao avisa onUnauthorized em 401 sem token (login errado)', () async {
+      var avisos = 0;
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((request) async => http.Response('negado', 401)),
+      )..onUnauthorized = () => avisos++;
+
+      await expectLater(
+        client.post('/login', {}),
+        throwsA(isA<ApiException>()),
+      );
+
+      expect(avisos, 0);
+    });
+
     test('devolve null em 204', () async {
       final client = ApiClient(
         baseUrl: 'http://api.test',
