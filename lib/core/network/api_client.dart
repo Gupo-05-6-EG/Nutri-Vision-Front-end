@@ -17,6 +17,10 @@ class ApiClient {
 
   String? authToken;
 
+  /// Chamado quando a API responde 401 *com um token em uso* (sessao expirada
+  /// ou invalidada). Nao dispara em 401 sem token (ex.: senha errada no login).
+  void Function()? onUnauthorized;
+
   Map<String, String> _headers({bool hasBody = false}) => {
         'Accept': 'application/json',
         if (hasBody) 'Content-Type': 'application/json',
@@ -60,6 +64,10 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.statusCode == 204 || response.body.isEmpty) return null;
       return jsonDecode(utf8.decode(response.bodyBytes));
+    }
+
+    if (response.statusCode == 401 && authToken != null) {
+      onUnauthorized?.call();
     }
 
     throw ApiException(
