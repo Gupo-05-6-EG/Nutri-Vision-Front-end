@@ -16,6 +16,8 @@ import 'package:nutri_vision/features/auth/presentation/login_page.dart';
 import 'package:nutri_vision/features/auth/presentation/welcome_page.dart';
 import 'package:nutri_vision/features/home/presentation/home_placeholder_page.dart';
 import 'package:nutri_vision/features/plan/data/plan_repository.dart';
+import 'package:nutri_vision/features/reminders/application/push_service.dart';
+import 'package:nutri_vision/features/reminders/data/reminder_repository.dart';
 import 'package:nutri_vision/features/screening/data/screening_repository.dart';
 
 /// Testes de widget da entrada do app (Task 7.4, parte 3/4): boas-vindas,
@@ -79,6 +81,8 @@ class _Harness {
                 auth: auth,
                 screening: screening,
                 plans: PlanRepository(client),
+                reminders: ReminderRepository(client),
+                push: const DisabledPushService(),
               ),
             _ => WelcomePage(auth: auth, screening: screening),
           },

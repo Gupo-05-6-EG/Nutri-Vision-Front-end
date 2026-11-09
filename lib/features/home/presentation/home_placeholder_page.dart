@@ -4,6 +4,9 @@ import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
+import '../../reminders/application/push_service.dart';
+import '../../reminders/data/reminder_repository.dart';
+import '../../reminders/presentation/meal_reminders_page.dart';
 import '../../screening/data/screening_repository.dart';
 import '../../screening/presentation/screening_page.dart';
 
@@ -14,12 +17,16 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.auth,
     required this.screening,
     required this.plans,
+    required this.reminders,
+    required this.push,
     super.key,
   });
 
   final AuthController auth;
   final ScreeningRepository screening;
   final PlanRepository plans;
+  final ReminderRepository reminders;
+  final PushService push;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -32,6 +39,18 @@ class HomePlaceholderPage extends StatelessWidget {
           repository: plans,
           patientId: patientId,
           fallbackGoalKcal: ceiling,
+        ),
+      ),
+    );
+  }
+
+  void _openReminders(BuildContext context, int patientId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MealRemindersPage(
+          repository: reminders,
+          patientId: patientId,
+          push: push,
         ),
       ),
     );
@@ -81,6 +100,14 @@ class HomePlaceholderPage extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.local_fire_department_outlined),
                 label: const Text('Calcular minha meta diária'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: auth.userId == null
+                    ? null
+                    : () => _openReminders(context, auth.userId!),
+                icon: const Icon(Icons.notifications_outlined),
+                label: const Text('Lembretes de refeição'),
               ),
             ],
           ),

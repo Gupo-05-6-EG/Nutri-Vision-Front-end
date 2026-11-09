@@ -278,6 +278,30 @@ void main() {
       expect(find.text('Nenhum jantar registrado neste dia.'), findsOne);
     });
 
+    testWidgets('abre ja filtrado no tipo pedido (lembrete tocado)', (
+      tester,
+    ) async {
+      final types = <String?>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MealHistoryPage(
+            repository: _repository((request) async {
+              types.add(request.url.queryParameters['tipo']);
+              return _json(_diaVazio);
+            }),
+            patientId: 1,
+            dailyGoalKcal: 2000,
+            today: _today,
+            initialType: MealType.lunch,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(types, ['almoco']);
+      expect(find.text('Nenhum almoço registrado neste dia.'), findsOne);
+    });
+
     testWidgets('mostra erro e tenta de novo', (tester) async {
       var calls = 0;
       await _pumpPage(
