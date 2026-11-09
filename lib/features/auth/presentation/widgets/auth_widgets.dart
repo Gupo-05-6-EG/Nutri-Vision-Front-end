@@ -3,17 +3,27 @@ import 'package:flutter/services.dart';
 
 /// Moldura comum das telas de autenticacao: AppBar, rolagem e largura maxima.
 class AuthScaffold extends StatelessWidget {
-  const AuthScaffold({required this.title, required this.children, super.key});
+  const AuthScaffold({
+    required this.title,
+    required this.children,
+    this.alignTop = false,
+    super.key,
+  });
 
   final String title;
   final List<Widget> children;
+
+  /// Formularios em passos (cadastro, triagem) comecam no topo, como no
+  /// prototipo; as demais telas ficam centralizadas.
+  final bool alignTop;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: alignTop ? Alignment.topCenter : Alignment.center,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(

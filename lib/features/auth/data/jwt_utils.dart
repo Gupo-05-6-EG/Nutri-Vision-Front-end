@@ -7,9 +7,7 @@ import 'dart:convert';
 class JwtUtils {
   const JwtUtils._();
 
-  /// Instante de expiracao (claim `exp`) ou `null` se o token for malformado
-  /// ou nao tiver `exp`.
-  static DateTime? expiresAt(String token) {
+  static Map<dynamic, dynamic>? _payload(String token) {
     final parts = token.split('.');
     if (parts.length != 3) return null;
 
@@ -17,18 +15,27 @@ class JwtUtils {
       final payload = jsonDecode(
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
       );
-      if (payload is! Map) return null;
-
-      final exp = payload['exp'];
-      if (exp is! num) return null;
-
-      return DateTime.fromMillisecondsSinceEpoch(
-        exp.toInt() * 1000,
-        isUtc: true,
-      );
+      return payload is Map ? payload : null;
     } catch (_) {
       return null;
     }
+  }
+
+  /// Instante de expiracao (claim `exp`) ou `null` se o token for malformado
+  /// ou nao tiver `exp`.
+  static DateTime? expiresAt(String token) {
+    final exp = _payload(token)?['exp'];
+    if (exp is! num) return null;
+
+    return DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000, isUtc: true);
+  }
+
+  /// Id do usuario (claim `sub`, que a API grava como texto) ou `null`.
+  static int? subject(String token) {
+    final sub = _payload(token)?['sub'];
+    if (sub is int) return sub;
+    if (sub is String) return int.tryParse(sub);
+    return null;
   }
 
   /// `true` quando o token tem `exp` e ele ja passou. Sem `exp` nao da para

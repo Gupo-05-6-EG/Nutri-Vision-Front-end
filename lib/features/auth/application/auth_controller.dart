@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
-import '../../../core/network/api_exception.dart';
 import '../data/auth_models.dart';
 import '../data/auth_repository.dart';
 import '../data/jwt_utils.dart';
@@ -33,8 +32,13 @@ class AuthController extends ChangeNotifier {
 
   AuthStatus _status = AuthStatus.unknown;
   String? _notice;
+  int? _userId;
 
   AuthStatus get status => _status;
+
+  /// Id do usuario logado (o paciente tem o mesmo id). Usado nas rotas
+  /// `/pacientes/{id}/...`, como a triagem.
+  int? get userId => _userId;
 
   /// Aviso para exibir na tela inicial (ex.: sessao expirada).
   String? get notice => _notice;
@@ -55,32 +59,21 @@ class AuthController extends ChangeNotifier {
     }
 
     _client.authToken = token;
+    _userId = JwtUtils.subject(token);
     _status = AuthStatus.authenticated;
     notifyListeners();
   }
 
   Future<void> login({required String email, required String password}) async {
     final result = await _repository.login(email: email, password: password);
-    await _startSession(result.token);
+    await _startSession(result);
   }
 
-  /// Cadastra e ja entra: a API de cadastro devolve o token.
-  ///
-  /// No fluxo autonomo, envia tambem os dados corporais para a triagem. A
-  /// conta ja existe nesse ponto, entao uma falha na triagem nao desfaz o
-  /// cadastro: o paciente refaz a triagem depois (RF14).
+  /// Cadastra e ja entra: a API de cadastro devolve o token. A triagem (RF14)
+  /// e enviada depois, pela tela que coletou os dados.
   Future<void> registerPatient(PatientSignup signup) async {
     final result = await _repository.registerPatient(signup);
-    await _startSession(result.token);
-
-    final triagem = signup.triagemJson();
-    if (triagem == null) return;
-
-    try {
-      await _repository.submitTriagem(result.userId, triagem);
-    } on ApiException {
-      // Conta criada e sessao aberta; ver comentario acima.
-    }
+    await _startSession(result);
   }
 
   /// Resgata o codigo de vinculo do nutricionista (paciente ja logado).
@@ -97,9 +90,10 @@ class AuthController extends ChangeNotifier {
 
   Future<void> logout() => _endSession();
 
-  Future<void> _startSession(String token) async {
-    await _storage.save(token);
-    _client.authToken = token;
+  Future<void> _startSession(AuthResult result) async {
+    await _storage.save(result.token);
+    _client.authToken = result.token;
+    _userId = result.userId;
     _notice = null;
     _status = AuthStatus.authenticated;
     notifyListeners();
@@ -112,6 +106,7 @@ class AuthController extends ChangeNotifier {
 
   Future<void> _endSession({String? notice}) async {
     _client.authToken = null;
+    _userId = null;
     _setUnauthenticated(notice: notice);
     await _storage.clear();
   }
