@@ -10,6 +10,7 @@ import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/token_storage.dart';
 import 'features/auth/presentation/welcome_page.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
+import 'features/screening/data/screening_repository.dart';
 
 class NutriVisionApp extends StatefulWidget {
   const NutriVisionApp({super.key});
@@ -26,6 +27,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     repository: AuthRepository(_client),
     storage: SecureTokenStorage(),
   );
+  late final ScreeningRepository _screening = ScreeningRepository(_client);
 
   @override
   void initState() {
@@ -61,8 +63,10 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
         listenable: _auth,
         builder: (context, _) => switch (_auth.status) {
           AuthStatus.unknown => const _SplashPage(),
-          AuthStatus.unauthenticated => WelcomePage(auth: _auth),
-          AuthStatus.authenticated => HomePlaceholderPage(auth: _auth),
+          AuthStatus.unauthenticated =>
+            WelcomePage(auth: _auth, screening: _screening),
+          AuthStatus.authenticated =>
+            HomePlaceholderPage(auth: _auth, screening: _screening),
         },
       ),
     );

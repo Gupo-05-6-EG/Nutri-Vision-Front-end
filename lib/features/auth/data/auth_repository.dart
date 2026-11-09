@@ -10,8 +10,6 @@ class AuthRepository {
   static const registerPatientPath = '/auth/cadastro/paciente';
   static const linkPath = '/link';
 
-  static String triagemPath(int patientId) => '/pacientes/$patientId/triagem';
-
   final ApiClient _client;
 
   /// Login e cadastro devolvem o mesmo `TokenOut`.
@@ -42,10 +40,6 @@ class AuthRepository {
     final data = await _client.post(registerPatientPath, signup.toJson());
     return _readAuth(data);
   }
-
-  /// Envia os dados corporais do paciente (gera o teto calorico).
-  Future<void> submitTriagem(int patientId, Map<String, dynamic> body) =>
-      _client.post(triagemPath(patientId), body);
 
   /// Resgata o codigo de vinculo. Exige o token do paciente ja em uso.
   Future<LinkedProfessional> linkProfessional(String code) async {
