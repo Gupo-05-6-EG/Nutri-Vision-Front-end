@@ -238,7 +238,9 @@ void main() {
 
       expect(push.requestPermissionCalls, 1);
       expect(
-          find.textContaining('notificações estão desativadas'), findsNothing);
+        find.textContaining('notificações estão desativadas'),
+        findsNothing,
+      );
     });
 
     testWidgets('permissao bloqueada orienta a ir nas configuracoes', (
