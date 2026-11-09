@@ -41,4 +41,54 @@ class Env {
 
   /// Meta diaria de calorias enquanto o plano alimentar nao vem da API.
   static double get dailyGoalKcal => _optionalNumber('META_KCAL_DIARIA', 2000);
+
+  static const _firebaseKeys = [
+    'FIREBASE_API_KEY',
+    'FIREBASE_APP_ID',
+    'FIREBASE_MESSAGING_SENDER_ID',
+    'FIREBASE_PROJECT_ID',
+  ];
+
+  /// Chaves do app Android no Firebase, usadas pelo push dos lembretes (RF26).
+  ///
+  /// Todas ausentes: `null` e o app roda sem push (e o caso do CI). So algumas
+  /// preenchidas e erro de configuracao, entao falha com mensagem clara.
+  static FirebaseConfig? get firebase {
+    final values = {
+      for (final key in _firebaseKeys) key: dotenv.maybeGet(key)?.trim() ?? '',
+    };
+    final missing = [
+      for (final entry in values.entries)
+        if (entry.value.isEmpty) entry.key,
+    ];
+    if (missing.length == _firebaseKeys.length) return null;
+    if (missing.isNotEmpty) {
+      throw StateError(
+        'Variaveis do Firebase incompletas no .env: falta ${missing.join(', ')}. '
+        'Preencha todas ou deixe todas vazias (push desligado).',
+      );
+    }
+    return FirebaseConfig(
+      apiKey: values['FIREBASE_API_KEY']!,
+      appId: values['FIREBASE_APP_ID']!,
+      messagingSenderId: values['FIREBASE_MESSAGING_SENDER_ID']!,
+      projectId: values['FIREBASE_PROJECT_ID']!,
+    );
+  }
+}
+
+/// Chaves do Firebase lidas do `.env`. Ficam aqui (e nao como `FirebaseOptions`)
+/// para que so o servico de push dependa dos pacotes do Firebase.
+class FirebaseConfig {
+  const FirebaseConfig({
+    required this.apiKey,
+    required this.appId,
+    required this.messagingSenderId,
+    required this.projectId,
+  });
+
+  final String apiKey;
+  final String appId;
+  final String messagingSenderId;
+  final String projectId;
 }

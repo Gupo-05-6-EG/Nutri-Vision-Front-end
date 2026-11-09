@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../reminders/application/push_service.dart';
+import '../../reminders/data/reminder_repository.dart';
+import '../../reminders/presentation/meal_reminders_page.dart';
 import '../../screening/data/screening_repository.dart';
 import '../../screening/presentation/screening_page.dart';
 
@@ -11,11 +14,29 @@ class HomePlaceholderPage extends StatelessWidget {
   const HomePlaceholderPage({
     required this.auth,
     required this.screening,
+    required this.reminders,
+    required this.push,
     super.key,
   });
 
   final AuthController auth;
   final ScreeningRepository screening;
+  final ReminderRepository reminders;
+  final PushService push;
+
+  void _openReminders(BuildContext context) {
+    final patientId = auth.userId;
+    if (patientId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MealRemindersPage(
+          repository: reminders,
+          patientId: patientId,
+          push: push,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +74,12 @@ class HomePlaceholderPage extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.local_fire_department_outlined),
                 label: const Text('Calcular minha meta diária'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _openReminders(context),
+                icon: const Icon(Icons.notifications_outlined),
+                label: const Text('Lembretes de refeição'),
               ),
             ],
           ),

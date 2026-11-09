@@ -11,6 +11,7 @@ histórico de consumo e a gamificação.
 | HTTP | `http` |
 | Configuração | `flutter_dotenv` |
 | Token JWT | `flutter_secure_storage` |
+| Push (lembretes) | `firebase_core` + `firebase_messaging` (FCM) |
 | Lint | `flutter_lints` |
 | Testes | `flutter_test` + `http/testing` (MockClient) |
 | CI | GitHub Actions |
@@ -34,6 +35,7 @@ lib/
     ├── foods/                    # busca manual de alimentos (RF02.2)
     ├── meals/                    # histórico de refeições (RF04, RF12)
     ├── recognition/              # revisão do que a IA identificou (RF02.1, RF02.3)
+    ├── reminders/                # lembretes de refeição + push FCM (RF26)
     └── health/                   # tela de diagnóstico (temporária)
 test/                             # testes unitários
 ```
@@ -70,6 +72,66 @@ flutter run
 
 Documentadas em [`.env.example`](.env.example). O `.env` é declarado como asset
 no `pubspec.yaml` e lido em runtime pelo `flutter_dotenv` — **não vai pro git**.
+
+## Lembretes de refeição (RF26)
+
+O paciente escolhe, em **Lembretes de refeição** (botão na home), o horário de
+cada refeição e quais lembretes quer receber. O app salva os horários na API e
+registra o token FCM do aparelho; o job do back-end
+(`scripts/enviar_lembretes_refeicao.py`) envia o push quando a refeição ainda
+não foi registrada — no máximo 1 por refeição por dia. Tocar no push abre o
+histórico filtrado naquela refeição.
+
+| Peça | Onde |
+|---|---|
+| Tela de horários | `features/reminders/presentation/meal_reminders_page.dart` |
+| API (`/lembretes-refeicao`, `/dispositivos-push`) | `features/reminders/data/reminder_repository.dart` |
+| Registro do token no login / remoção no logout | `features/reminders/application/push_registration.dart` |
+| Único ponto que usa o Firebase | `features/reminders/application/firebase_push_service.dart` |
+
+**Configuração do Firebase.** O Firebase é iniciado pelo Dart com as chaves do
+`.env`, e não com `google-services.json`: as pastas `android/` e `ios/` não são
+versionadas e o CI as recria. Com as 4 variáveis `FIREBASE_*` vazias (padrão do
+`.env.example` e do CI) o app roda normalmente, só sem push.
+
+1. No [Firebase Console](https://console.firebase.google.com), use o **mesmo
+   projeto** do back-end (o do `FCM_CREDENTIALS_FILE`) ou crie um.
+2. Adicione um app **Android** com o pacote `br.com.nutrivision.nutri_vision`
+   (o gerado pelo `flutter create --org br.com.nutrivision`).
+3. Baixe o `google-services.json` **só para copiar os valores** (não o coloque
+   no repositório) e preencha o `.env`:
+
+   | `.env` | Campo do `google-services.json` |
+   |---|---|
+   | `FIREBASE_API_KEY` | `client[0].api_key[0].current_key` |
+   | `FIREBASE_APP_ID` | `client[0].client_info.mobilesdk_app_id` |
+   | `FIREBASE_MESSAGING_SENDER_ID` | `project_info.project_number` |
+   | `FIREBASE_PROJECT_ID` | `project_info.project_id` |
+
+4. Em **Configurações do projeto → Contas de serviço**, gere a chave JSON e
+   entregue ao back-end (`FCM_CREDENTIALS_FILE`). Esse arquivo é secreto e
+   nunca vai para o git.
+
+**Testando de ponta a ponta.**
+
+- Use um emulador com imagem **Google Play** (sem os serviços do Google o FCM
+  não funciona) — de preferência API 33+, para ver o pedido de permissão.
+- Em debug, o token do aparelho aparece no log (`Token FCM: ...`): dá para
+  testar pelo Firebase Console → Messaging → *Enviar mensagem de teste*.
+- Ligue um lembrete para daqui a 1–2 minutos, salve e, passado o horário, rode
+  `python -m scripts.enviar_lembretes_refeicao` no back-end.
+
+**Limitações conhecidas.**
+
+- **iOS ainda não configurado**: exige chave APNs no Firebase e as capabilities
+  *Push Notifications* / *Background Modes* no Xcode (pasta `ios/` não versionada).
+- A notificação usa o ícone padrão do app; um ícone próprio exige configurar o
+  `AndroidManifest.xml`, que não é versionado.
+- O app usa o token de registro do FCM (`getToken`), marcado como obsoleto no
+  `firebase_messaging` 17 em favor do registro por *Installation ID*. O job do
+  back-end envia para o token de registro, então migrar exige mudar os dois lados.
+- O push só sai se o job do back-end estiver agendado (cron a cada 5 min) e com
+  `FCM_CREDENTIALS_FILE` configurado.
 
 ## CI/CD (RNF08)
 

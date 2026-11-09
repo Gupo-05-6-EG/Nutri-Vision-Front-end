@@ -19,6 +19,7 @@ class MealHistoryPage extends StatefulWidget {
     required this.patientId,
     required this.dailyGoalKcal,
     this.today,
+    this.initialType,
     super.key,
   });
 
@@ -31,6 +32,9 @@ class MealHistoryPage extends StatefulWidget {
   /// Dia atual; existe para os testes nao dependerem do relogio.
   final DateTime? today;
 
+  /// Filtro ja aplicado ao abrir (ex.: vindo do lembrete de uma refeicao).
+  final MealType? initialType;
+
   @override
   State<MealHistoryPage> createState() => _MealHistoryPageState();
 }
@@ -40,7 +44,7 @@ enum _Status { loading, success, failure }
 class _MealHistoryPageState extends State<MealHistoryPage> {
   late final DateTime _today = _dateOnly(widget.today ?? DateTime.now());
   late DateTime _day = _today;
-  MealType? _type;
+  late MealType? _type = widget.initialType;
 
   /// Identifica a carga mais recente: respostas de dias antigos sao ignoradas.
   int _requestId = 0;
