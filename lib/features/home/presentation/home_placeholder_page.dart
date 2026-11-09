@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../plan/data/plan_repository.dart';
+import '../../plan/presentation/plan_progress_page.dart';
 import '../../screening/data/screening_repository.dart';
 import '../../screening/presentation/screening_page.dart';
 
@@ -11,11 +13,29 @@ class HomePlaceholderPage extends StatelessWidget {
   const HomePlaceholderPage({
     required this.auth,
     required this.screening,
+    required this.plans,
     super.key,
   });
 
   final AuthController auth;
   final ScreeningRepository screening;
+  final PlanRepository plans;
+
+  void _openPlan(BuildContext context, int patientId) {
+    // O teto da triagem so vale se foi calculado por este paciente.
+    final goal = screening.lastGoal;
+    final ceiling =
+        goal != null && goal.patientId == patientId ? goal.dailyKcal : null;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PlanProgressPage(
+          repository: plans,
+          patientId: patientId,
+          fallbackGoalKcal: ceiling,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +62,14 @@ class HomePlaceholderPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: auth.userId == null
+                    ? null
+                    : () => _openPlan(context, auth.userId!),
+                icon: const Icon(Icons.insights_outlined),
+                label: const Text('Meu plano e progresso'),
+              ),
+              const SizedBox(height: 12),
               // A API ainda nao expoe a meta salva, entao a home nao sabe se
               // a triagem ja foi feita: o botao serve para fazer ou refazer.
               FilledButton.icon(
