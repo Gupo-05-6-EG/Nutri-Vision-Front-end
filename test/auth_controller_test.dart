@@ -69,10 +69,10 @@ void main() {
       final auth = _controller(
         MockClient((request) async {
           expect(request.url.path, AuthRepository.loginPath);
-          expect(
-            jsonDecode(request.body),
-            {'email': 'a@b.com', 'senha': '12345678'},
-          );
+          expect(jsonDecode(request.body), {
+            'email': 'a@b.com',
+            'senha': '12345678',
+          });
           return _tokenOut(validToken);
         }),
         storage,
@@ -228,5 +228,81 @@ void main() {
       expect(corpo, {'codigo': '123456'});
       expect(professional.name, 'Dra. Camila Mendes');
     });
+
+    test('linkProfessional le id, foto e status pendente', () async {
+      final auth = _controller(
+        MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'nutricionista': {
+                'id': 4,
+                'nome': 'Dra. Camila Mendes',
+                'foto_url': 'http://img.test/c.png',
+              },
+              'vinculado_em': '2026-11-05T12:00:00Z',
+              'status': 'pendente',
+            }),
+            200,
+          );
+        }),
+        _MemoryStorage(),
+        (c) => c,
+      );
+
+      final professional = await auth.linkProfessional('123456');
+
+      expect(professional.id, 4);
+      expect(professional.photoUrl, 'http://img.test/c.png');
+      expect(professional.isPending, isTrue);
+    });
+
+    test('acceptLink e refuseLink chamam as rotas do vinculo', () async {
+      final paths = <String>[];
+      final auth = _controller(
+        MockClient((request) async {
+          expect(request.method, 'POST');
+          paths.add(request.url.path);
+          return http.Response(
+            jsonEncode({
+              'vinculo_id': 1,
+              'paciente_id': 7,
+              'nutricionista_id': 4,
+              'status': 'ativo',
+            }),
+            200,
+          );
+        }),
+        _MemoryStorage(),
+        (c) => c,
+      );
+
+      await auth.acceptLink(4);
+      await auth.refuseLink(4);
+
+      expect(paths, ['/link/4/aceitar', '/link/4/recusar']);
+    });
+
+    test(
+      'acceptLink propaga o erro quando o vinculo nao esta pendente',
+      () async {
+        final auth = _controller(
+          MockClient((request) async {
+            return http.Response(
+              jsonEncode({'detail': 'Vinculo nao esta pendente'}),
+              409,
+            );
+          }),
+          _MemoryStorage(),
+          (c) => c,
+        );
+
+        expect(
+          auth.acceptLink(4),
+          throwsA(
+            isA<ApiException>().having((e) => e.statusCode, 'status', 409),
+          ),
+        );
+      },
+    );
   });
 }

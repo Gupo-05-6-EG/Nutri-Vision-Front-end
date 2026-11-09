@@ -168,9 +168,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       if (!mounted) return;
       setState(() => _status = _Status.ready);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível registrar a refeição.'),
-        ),
+        const SnackBar(content: Text('Não foi possível registrar a refeição.')),
       );
     }
   }

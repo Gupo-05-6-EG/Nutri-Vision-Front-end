@@ -34,10 +34,8 @@ class _LinkCodePageState extends State<LinkCodePage> {
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => LinkedSignupPage(
-          auth: widget.auth,
-          linkCode: _code.text.trim(),
-        ),
+        builder: (_) =>
+            LinkedSignupPage(auth: widget.auth, linkCode: _code.text.trim()),
       ),
     );
   }

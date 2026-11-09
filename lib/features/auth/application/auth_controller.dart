@@ -80,6 +80,14 @@ class AuthController extends ChangeNotifier {
   Future<LinkedProfessional> linkProfessional(String code) =>
       _repository.linkProfessional(code);
 
+  /// Aceita o vinculo pendente com o nutricionista.
+  Future<void> acceptLink(int professionalId) =>
+      _repository.acceptLink(professionalId);
+
+  /// Recusa o vinculo pendente com o nutricionista.
+  Future<void> refuseLink(int professionalId) =>
+      _repository.refuseLink(professionalId);
+
   Future<void> logout() => _endSession();
 
   Future<void> _startSession(AuthResult result) async {

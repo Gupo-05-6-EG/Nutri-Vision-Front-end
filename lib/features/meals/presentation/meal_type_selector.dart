@@ -21,10 +21,7 @@ class MealTypeSelector extends StatelessWidget {
         decoration: InputDecoration(labelText: label),
         items: MealType.values
             .map(
-              (type) => DropdownMenuItem(
-                value: type,
-                child: Text(type.label),
-              ),
+              (type) => DropdownMenuItem(value: type, child: Text(type.label)),
             )
             .toList(),
         onChanged: (type) {
