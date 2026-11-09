@@ -10,6 +10,11 @@ class ScreeningRepository {
 
   final ApiClient _client;
 
+  /// Ultimo teto calorico calculado nesta sessao. A API ainda nao tem uma
+  /// consulta da meta salva, entao a tela de plano usa este valor enquanto o
+  /// paciente nao tem plano do nutricionista.
+  CalorieGoal? lastGoal;
+
   /// Envia a triagem e devolve o teto calorico gerado (ja salvo no paciente).
   /// Refazer a triagem sobrescreve a meta anterior.
   Future<CalorieGoal> submit(int patientId, ScreeningData data) async {
@@ -18,7 +23,7 @@ class ScreeningRepository {
       throw const ApiException('Resposta inesperada da triagem.');
     }
     try {
-      return CalorieGoal.fromJson(response);
+      return lastGoal = CalorieGoal.fromJson(response);
     } on FormatException catch (error) {
       throw ApiException(error.message);
     }

@@ -13,6 +13,7 @@ import 'features/home/presentation/home_placeholder_page.dart';
 import 'features/meals/data/meal_repository.dart';
 import 'features/meals/domain/meal_type.dart';
 import 'features/meals/presentation/meal_history_page.dart';
+import 'features/plan/data/plan_repository.dart';
 import 'features/reminders/application/push_registration.dart';
 import 'features/reminders/application/push_service.dart';
 import 'features/reminders/data/reminder_repository.dart';
@@ -39,6 +40,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     storage: SecureTokenStorage(),
   );
   late final ScreeningRepository _screening = ScreeningRepository(_client);
+  late final PlanRepository _plans = PlanRepository(_client);
   late final MealRepository _meals = MealRepository(_client);
   late final ReminderRepository _reminders = ReminderRepository(_client);
   late final PushRegistration _pushRegistration = PushRegistration(
@@ -142,6 +144,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
           AuthStatus.authenticated => HomePlaceholderPage(
               auth: _auth,
               screening: _screening,
+              plans: _plans,
               reminders: _reminders,
               push: widget.push,
             ),

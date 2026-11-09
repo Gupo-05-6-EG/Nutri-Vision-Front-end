@@ -34,6 +34,7 @@ lib/
 └── features/
     ├── foods/                    # busca manual de alimentos (RF02.2)
     ├── meals/                    # histórico de refeições (RF04, RF12)
+    ├── plan/                     # plano prescrito e progresso (RF06, RF25)
     ├── recognition/              # revisão do que a IA identificou (RF02.1, RF02.3)
     ├── reminders/                # lembretes de refeição + push FCM (RF26)
     └── health/                   # tela de diagnóstico (temporária)

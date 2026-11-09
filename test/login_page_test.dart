@@ -15,6 +15,7 @@ import 'package:nutri_vision/features/auth/presentation/linked_signup_page.dart'
 import 'package:nutri_vision/features/auth/presentation/login_page.dart';
 import 'package:nutri_vision/features/auth/presentation/welcome_page.dart';
 import 'package:nutri_vision/features/home/presentation/home_placeholder_page.dart';
+import 'package:nutri_vision/features/plan/data/plan_repository.dart';
 import 'package:nutri_vision/features/reminders/application/push_service.dart';
 import 'package:nutri_vision/features/reminders/data/reminder_repository.dart';
 import 'package:nutri_vision/features/screening/data/screening_repository.dart';
@@ -79,6 +80,7 @@ class _Harness {
             AuthStatus.authenticated => HomePlaceholderPage(
                 auth: auth,
                 screening: screening,
+                plans: PlanRepository(client),
                 reminders: ReminderRepository(client),
                 push: const DisabledPushService(),
               ),
