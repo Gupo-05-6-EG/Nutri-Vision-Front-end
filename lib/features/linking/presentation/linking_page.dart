@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-import '../../../core/network/api_client.dart';
-import '../../../core/network/api_exception.dart';
-import '../data/linking_service.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/data/auth_models.dart';
+import '../../auth/presentation/auth_error_message.dart';
+import '../../auth/presentation/auth_validators.dart';
+import '../../auth/presentation/widgets/auth_widgets.dart';
 
 class LinkingPage extends StatefulWidget {
-  const LinkingPage({required this.client, super.key});
+  const LinkingPage({required this.auth, super.key});
 
-  final ApiClient client;
+  final AuthController auth;
 
   @override
   State<LinkingPage> createState() => _LinkingPageState();
@@ -16,8 +19,7 @@ class LinkingPage extends StatefulWidget {
 class _LinkingPageState extends State<LinkingPage> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
-  late final _service = LinkingService(widget.client);
-  Nutritionist? _nutritionist;
+  LinkedProfessional? _nutritionist;
   bool _loading = false;
   bool _linked = false;
   String? _error;
@@ -29,52 +31,51 @@ class _LinkingPageState extends State<LinkingPage> {
   }
 
   Future<void> _findNutritionist() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_loading || !_formKey.currentState!.validate()) return;
     setState(() {
       _loading = true;
       _error = null;
       _nutritionist = null;
     });
     try {
-      final nutritionist = await _service.redeemCode(_codeController.text);
+      final professional =
+          await widget.auth.linkProfessional(_codeController.text.trim());
       if (!mounted) return;
-      setState(() => _nutritionist = nutritionist);
+      if (professional.id == null || !professional.isPending) {
+        setState(() => _error = 'A API retornou um vínculo inválido.');
+        return;
+      }
+      setState(() => _nutritionist = professional);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = _messageFor(error));
+      setState(() {
+        _error = authErrorMessage(
+          error,
+          notFound: 'Código não encontrado. Confira com o seu nutricionista.',
+        );
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _confirmLink() async {
+    final id = _nutritionist?.id;
+    if (_loading || id == null) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await _service.acceptLink(_nutritionist!.id);
+      await widget.auth.acceptLink(id);
       if (!mounted) return;
       setState(() => _linked = true);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = _messageFor(error));
+      setState(() => _error = authErrorMessage(error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  String _messageFor(Object error) {
-    if (error is ApiException) {
-      if (error.statusCode == 404 ||
-          error.statusCode == 400 ||
-          error.statusCode == 409 ||
-          error.statusCode == 410) {
-        return 'Codigo invalido ou expirado. Confira os 6 digitos com seu nutricionista.';
-      }
-      return error.message;
-    }
-    return 'Nao foi possivel conectar. Verifique sua internet e tente novamente.';
   }
 
   @override
@@ -94,7 +95,10 @@ class _LinkingPageState extends State<LinkingPage> {
                       children: [
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: Icon(Icons.arrow_back, color: colors.primary),
+                          child: BackButton(
+                            color: colors.primary,
+                            onPressed: () => Navigator.of(context).maybePop(),
+                          ),
                         ),
                         const SizedBox(height: 32),
                         Container(
@@ -109,13 +113,15 @@ class _LinkingPageState extends State<LinkingPage> {
                               Icon(Icons.link, size: 32, color: colors.primary),
                         ),
                         const SizedBox(height: 24),
-                        Text('Conecte-se ao seu nutricionista',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                )),
+                        Text(
+                          'Conecte-se ao seu nutricionista',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           'Digite o c\u{00f3}digo de 6 d\u{00ed}gitos que seu nutricionista compartilhou com voc\u{00ea}.',
@@ -132,23 +138,19 @@ class _LinkingPageState extends State<LinkingPage> {
                             controller: _codeController,
                             keyboardType: TextInputType.number,
                             textInputAction: TextInputAction.done,
-                            maxLength: 6,
                             inputFormatters: [
                               FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(6),
                             ],
                             onFieldSubmitted: (_) => _findNutritionist(),
+                            validator: AuthValidators.linkCode,
                             decoration: const InputDecoration(
                               labelText:
                                   'C\u{00f3}digo de vincula\u{00e7}\u{00e3}o',
                               hintText: '000000',
                               prefixIcon: Icon(Icons.pin_outlined),
-                              counterText: '',
                               border: OutlineInputBorder(),
                             ),
-                            validator: (value) => value == null ||
-                                    !RegExp(r'^\d{6}$').hasMatch(value)
-                                ? 'Informe os 6 d\u{00ed}gitos do c\u{00f3}digo.'
-                                : null,
                           ),
                         ),
                         if (_error != null) ...[
@@ -175,7 +177,8 @@ class _LinkingPageState extends State<LinkingPage> {
                             onPressed: _loading ? null : _confirmLink,
                             icon: const Icon(Icons.check),
                             label: const Text(
-                                'Confirmar vincula\u{00e7}\u{00e3}o'),
+                              'Confirmar vincula\u{00e7}\u{00e3}o',
+                            ),
                           ),
                         ],
                       ],
@@ -191,13 +194,22 @@ class _LinkingPageState extends State<LinkingPage> {
         children: [
           Icon(Icons.check_circle, size: 72, color: colors.primary),
           const SizedBox(height: 20),
-          Text('Vincula\u{00e7}\u{00e3}o conclu\u{00ed}da!',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center),
+          Text(
+            'Vincula\u{00e7}\u{00e3}o conclu\u{00ed}da!',
+            style: Theme.of(context).textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 10),
-          Text('Agora voc\u{00ea} est\u{00e1} conectado ao seu nutricionista.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge),
+          Text(
+            'Agora voc\u{00ea} est\u{00e1} conectado ao seu nutricionista.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 24),
+          AuthPrimaryButton(
+            label: 'Concluir',
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ],
       );
 }
@@ -205,7 +217,7 @@ class _LinkingPageState extends State<LinkingPage> {
 class _NutritionistCard extends StatelessWidget {
   const _NutritionistCard({required this.nutritionist});
 
-  final Nutritionist nutritionist;
+  final LinkedProfessional nutritionist;
 
   @override
   Widget build(BuildContext context) {
@@ -230,13 +242,17 @@ class _NutritionistCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Voc\u{00ea} vai se conectar com',
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    'Voc\u{00ea} vai se conectar com',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                   const SizedBox(height: 4),
-                  Text(nutritionist.name,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          )),
+                  Text(
+                    nutritionist.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ],
               ),
             ),

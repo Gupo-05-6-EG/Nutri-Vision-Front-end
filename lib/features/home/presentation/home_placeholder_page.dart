@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
-import '../../../core/network/api_client.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../linking/presentation/linking_page.dart';
 
@@ -10,12 +9,10 @@ import '../../linking/presentation/linking_page.dart';
 class HomePlaceholderPage extends StatelessWidget {
   const HomePlaceholderPage({
     required this.auth,
-    required this.client,
     super.key,
   });
 
   final AuthController auth;
-  final ApiClient client;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +42,7 @@ class HomePlaceholderPage extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => LinkingPage(client: client),
+                    builder: (_) => LinkingPage(auth: auth),
                   ),
                 ),
                 icon: const Icon(Icons.link),
