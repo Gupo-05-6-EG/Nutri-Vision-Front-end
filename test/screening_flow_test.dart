@@ -79,6 +79,15 @@ class _Api {
           return http.Response(_tokenOut, 201);
         case AuthRepository.loginPath:
           return http.Response(_tokenOut, 200);
+        case '/privacidade/consentimento':
+          return http.Response(
+            jsonEncode({
+              'versao_termo': '1.0',
+              'aceito_em': '2026-10-01T12:00:00Z',
+              'revogado_em': null,
+            }),
+            201,
+          );
         case '/pacientes/7/triagem':
           final body = jsonDecode(request.body) as Map<String, dynamic>;
           triagemBodies.add(body);
@@ -364,6 +373,11 @@ void main() {
         tester,
         'Li e aceito os Termos de Uso e a Política de Privacidade.',
       );
+      await _tap(
+        tester,
+        'Consinto com o tratamento dos meus dados pessoais e de saúde para '
+        'oferecer os recursos nutricionais do app.',
+      );
       await _tap(tester, 'Criar conta');
     }
 
@@ -379,6 +393,7 @@ void main() {
 
       expect(api.requests, [
         'POST ${AuthRepository.registerPatientPath}',
+        'POST /privacidade/consentimento',
         'POST /pacientes/7/triagem',
       ]);
       expect(api.triagemBodies.single, {
