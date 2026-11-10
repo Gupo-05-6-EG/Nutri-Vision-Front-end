@@ -7,6 +7,7 @@ import '../../screening/presentation/widgets/screening_widgets.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_models.dart';
 import 'auth_error_message.dart';
+import 'privacy_consent_checkbox.dart';
 import 'auth_validators.dart';
 import 'widgets/auth_widgets.dart';
 
@@ -44,6 +45,7 @@ class _AutonomousSignupPageState extends State<AutonomousSignupPage> {
 
   int _step = 0;
   bool _loading = false;
+  bool _accountCreated = false;
   String? _error;
 
   @override
@@ -79,17 +81,25 @@ class _AutonomousSignupPageState extends State<AutonomousSignupPage> {
     });
 
     try {
-      await widget.auth.registerPatient(
-        PatientSignup(
-          name: _name.text.trim(),
-          email: _email.text.trim(),
-          password: _password.text,
-        ),
-      );
+      if (!_accountCreated) {
+        await widget.auth.registerPatient(
+          PatientSignup(
+            name: _name.text.trim(),
+            email: _email.text.trim(),
+            password: _password.text,
+          ),
+        );
+        _accountCreated = true;
+      }
+      await widget.auth.registerPrivacyConsent();
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = authErrorMessage(error);
+        _error = _accountCreated
+            ? 'Sua conta foi criada, mas não conseguimos registrar o '
+                'consentimento. Verifique sua conexão e tente novamente. '
+                '${authErrorMessage(error)}'
+            : authErrorMessage(error);
         _loading = false;
       });
       return;
@@ -145,7 +155,9 @@ class _AutonomousSignupPageState extends State<AutonomousSignupPage> {
           ),
           const SizedBox(height: 32),
           ScreeningPrimaryButton(
-            label: isLast ? 'Criar conta' : 'Continuar',
+            label: isLast
+                ? (_accountCreated ? 'Tentar novamente' : 'Criar conta')
+                : 'Continuar',
             loading: _loading,
             onPressed: isLast ? _submit : _next,
           ),
@@ -192,6 +204,8 @@ class _AutonomousSignupPageState extends State<AutonomousSignupPage> {
         ),
         const SizedBox(height: 8),
         TermsCheckboxField(),
+        const SizedBox(height: 8),
+        PrivacyConsentCheckboxField(),
       ],
     );
   }
