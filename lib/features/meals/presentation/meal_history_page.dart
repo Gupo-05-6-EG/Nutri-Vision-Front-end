@@ -290,16 +290,15 @@ class _MealCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text('$hour:$minute', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    mealTypeLabel(meal.type),
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
+                Text(mealTypeLabel(meal.type),
+                    style: theme.textTheme.titleMedium),
                 Text(
                   '${formatNumber(meal.totals.kcal)} kcal',
                   style: theme.textTheme.titleMedium,
@@ -310,9 +309,11 @@ class _MealCard extends StatelessWidget {
             for (final item in meal.items)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
-                    Expanded(child: Text(item.name)),
+                    Text(item.name),
                     Text(
                       '${formatNumber(item.grams)} g · '
                       '${formatNumber(item.totals.kcal)} kcal',
