@@ -263,7 +263,10 @@ class _Macro extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Text('${formatNumber(grams)} g', style: theme.textTheme.titleMedium),
+        Text(
+          '${formatNumber(grams)} g',
+          style: theme.textTheme.titleMedium,
+        ),
         Text(label, style: theme.textTheme.bodySmall),
       ],
     );
@@ -297,8 +300,10 @@ class _MealCard extends StatelessWidget {
               children: [
                 Text('$hour:$minute', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 8),
-                Text(mealTypeLabel(meal.type),
-                    style: theme.textTheme.titleMedium),
+                Text(
+                  mealTypeLabel(meal.type),
+                  style: theme.textTheme.titleMedium,
+                ),
                 Text(
                   '${formatNumber(meal.totals.kcal)} kcal',
                   style: theme.textTheme.titleMedium,

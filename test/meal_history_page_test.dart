@@ -127,8 +127,11 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpPage(tester, _repository((_) async => _json(_dia)),
-        textScale: 2);
+    await _pumpPage(
+      tester,
+      _repository((_) async => _json(_dia)),
+      textScale: 2,
+    );
     expect(tester.takeException(), isNull);
   });
 
