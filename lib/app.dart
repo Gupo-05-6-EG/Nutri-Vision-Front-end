@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'core/config/app_theme.dart';
+import 'features/achievements/data/achievement_repository.dart';
+import 'features/foods/data/food_repository.dart';
 import 'core/config/env.dart';
 import 'core/network/api_client.dart';
 import 'features/auth/application/auth_controller.dart';
@@ -151,6 +153,8 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               reminders: _reminders,
               push: widget.push,
               privacy: _privacy,
+              achievements: AchievementRepository(_client),
+              foods: FoodRepository(_client, patientId: _auth.userId),
             ),
         },
       ),

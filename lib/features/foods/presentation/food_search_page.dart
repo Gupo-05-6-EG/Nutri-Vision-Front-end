@@ -7,6 +7,7 @@ import '../data/food_repository.dart';
 import '../domain/food.dart';
 import '../domain/number_format.dart';
 import 'portion_sheet.dart';
+import 'custom_food_page.dart';
 
 /// Busca manual de alimentos (RF02.2).
 ///
@@ -112,7 +113,27 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buscar alimento')),
+      appBar: AppBar(
+        title: const Text('Buscar alimento'),
+        actions: [
+          if (widget.repository.patientId case final patientId?)
+            IconButton(
+              tooltip: 'Cadastrar alimento personalizado',
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                final food = await Navigator.of(context).push<Food>(
+                  MaterialPageRoute(
+                    builder: (_) => CustomFoodPage(
+                      repository: widget.repository,
+                      patientId: patientId,
+                    ),
+                  ),
+                );
+                if (food != null && mounted) await _select(food);
+              },
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

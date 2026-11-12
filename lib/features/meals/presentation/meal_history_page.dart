@@ -222,7 +222,8 @@ class _DailyProgress extends StatelessWidget {
               minHeight: 10,
               borderRadius: BorderRadius.circular(5),
               color: exceeded ? theme.colorScheme.error : null,
-              semanticsLabel: 'Progresso da meta de calorias',
+              semanticsLabel:
+                  '${formatNumber(totals.kcal)} de ${formatNumber(goalKcal)} quilocalorias',
             ),
             const SizedBox(height: 8),
             Text(
@@ -234,8 +235,10 @@ class _DailyProgress extends StatelessWidget {
               ),
             ),
             const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceAround,
               children: [
                 _Macro(label: 'Proteínas', grams: totals.protein),
                 _Macro(label: 'Carboidratos', grams: totals.carbs),

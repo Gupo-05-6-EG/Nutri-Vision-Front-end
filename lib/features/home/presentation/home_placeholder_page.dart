@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
+import '../../achievements/data/achievement_repository.dart';
+import '../../achievements/presentation/achievements_page.dart';
+import '../../foods/data/food_repository.dart';
+import '../../foods/presentation/food_search_page.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
@@ -22,10 +26,14 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.reminders,
     required this.push,
     this.privacy,
+    this.achievements,
+    this.foods,
     super.key,
   });
 
   final AuthController auth;
+  final AchievementRepository? achievements;
+  final FoodRepository? foods;
   final ScreeningRepository screening;
   final PlanRepository plans;
   final ReminderRepository reminders;
@@ -86,7 +94,7 @@ class HomePlaceholderPage extends StatelessWidget {
           ),
         ],
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -97,6 +105,27 @@ class HomePlaceholderPage extends StatelessWidget {
                 'As telas principais entram nas próximas tasks.',
                 textAlign: TextAlign.center,
               ),
+              if (achievements != null)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Minhas conquistas'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          AchievementsPage(repository: achievements!),
+                    ),
+                  ),
+                ),
+              if (foods != null)
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.restaurant),
+                  label: const Text('Meus alimentos'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => FoodSearchPage(repository: foods!),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 24),
               FilledButton.icon(
                 onPressed: auth.userId == null

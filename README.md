@@ -149,3 +149,38 @@ request em `main`/`develop`:
 - [Nutri-Vision-Front-end](https://github.com/Gupo-05-6-EG/Nutri-Vision-Front-end) — este app
 - [Nutri-Vision-Front-end-Web](https://github.com/Gupo-05-6-EG/Nutri-Vision-Front-end-Web) — painel React
 - [Nutri-Vision-IA](https://github.com/Gupo-05-6-EG/Nutri-Vision-IA) — reconhecimento de alimentos
+
+
+## Tasks 2.6, 4.6 e 7.3
+
+Na home, **Meus alimentos** abre a busca unificada de TACO e personalizados do
+paciente autenticado. O botao **Cadastrar alimento personalizado** abre o
+formulario por 100 g: nome, kcal, carboidratos, proteinas e gorduras. Aceita
+virgula decimal e valida limites e soma dos macros antes de enviar. A porcao
+continua retornando `FoodPortion`; `Food.origin` distingue IDs da TACO e dos
+personalizados. Consumidores autenticados devem passar `patientId` ao
+`FoodRepository` para incluir os alimentos particulares.
+
+**Minhas conquistas** consulta `/gamificacao/conquistas`, diferencia marcos
+obtidos e bloqueados, mostra progresso e permite tentar novamente/atualizar.
+Requer o backend da branch `feat/amanda-tasks-pendentes`, com migrations aplicadas.
+
+A acessibilidade preserva a escala de texto do sistema. As conquistas possuem
+rotulos semanticos de status/progresso; mensagens de autenticacao e total da
+revisao usam regioes vivas. O resumo de macros e o rodape de revisao se ajustam
+com quebra de linha, e o badge amarelo ganhou contraste maior.
+
+Validacao automatizada: semantica e fonte 200% em `test/amanda_tasks_test.dart`.
+A verificacao manual em Android/TalkBack ainda deve ser realizada em aparelho:
+
+1. Ativar TalkBack e fonte grande nas configuracoes do Android.
+2. Percorrer login/cadastro: nomes dos campos, mostrar/ocultar senha, aceite,
+   botao principal e anuncio de erro de autenticacao.
+3. Percorrer historico: dia anterior/seguinte, calorias e macros; confirmar
+   leitura do progresso e ausencia de cortes com fonte ampliada.
+4. Revisar foto: nome/confianca de cada alimento, editar, excluir/desfazer e
+   registrar; conferir a ordem do foco e anuncio do total recalculado.
+5. Abrir conquistas e alimento personalizado: status obtido/bloqueado, metas,
+   validacao dos campos e comportamento de tentar novamente sem conexao.
+
+Nao foi executada revisao manual com TalkBack nesta sessao.
