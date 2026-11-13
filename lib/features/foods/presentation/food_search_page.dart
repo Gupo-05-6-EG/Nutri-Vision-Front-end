@@ -123,6 +123,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
               tooltip: 'Cadastrar alimento personalizado',
               icon: const Icon(Icons.add),
               onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
                 final food = await Navigator.of(context).push<Food>(
                   MaterialPageRoute(
                     builder: (_) => CustomFoodPage(
@@ -137,7 +138,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
                 } else {
                   _controller.text = food.name;
                   _onChanged(food.name);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Alimento cadastrado.')),
                   );
                 }
