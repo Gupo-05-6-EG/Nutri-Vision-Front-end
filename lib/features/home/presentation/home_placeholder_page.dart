@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
+import '../../achievements/data/achievement_repository.dart';
+import '../../achievements/presentation/achievements_page.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
@@ -19,6 +21,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.plans,
     required this.reminders,
     required this.push,
+    this.achievements,
     super.key,
   });
 
@@ -27,6 +30,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final PlanRepository plans;
   final ReminderRepository reminders;
   final PushService push;
+  final AchievementRepository? achievements;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -109,6 +113,18 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
               ),
+              if (achievements case final repository?) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AchievementsPage(repository: repository),
+                    ),
+                  ),
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Minhas conquistas'),
+                ),
+              ],
             ],
           ),
         ),
