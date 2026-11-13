@@ -7,6 +7,7 @@ import '../data/food_repository.dart';
 import '../domain/food.dart';
 import '../domain/number_format.dart';
 import 'portion_sheet.dart';
+import 'custom_food_page.dart';
 
 /// Busca manual de alimentos (RF02.2).
 ///
@@ -16,11 +17,13 @@ import 'portion_sheet.dart';
 class FoodSearchPage extends StatefulWidget {
   const FoodSearchPage({
     required this.repository,
+    this.selectPortion = true,
     this.debounce = const Duration(milliseconds: 300),
     super.key,
   });
 
   final FoodRepository repository;
+  final bool selectPortion;
 
   /// Espera depois da ultima tecla antes de chamar a API.
   final Duration debounce;
@@ -112,7 +115,37 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Buscar alimento')),
+      appBar: AppBar(
+        title: const Text('Buscar alimento'),
+        actions: [
+          if (widget.repository.patientId case final patientId?)
+            IconButton(
+              tooltip: 'Cadastrar alimento personalizado',
+              icon: const Icon(Icons.add),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final food = await Navigator.of(context).push<Food>(
+                  MaterialPageRoute(
+                    builder: (_) => CustomFoodPage(
+                      repository: widget.repository,
+                      patientId: patientId,
+                    ),
+                  ),
+                );
+                if (food == null || !mounted) return;
+                if (widget.selectPortion) {
+                  await _select(food);
+                } else {
+                  _controller.text = food.name;
+                  _onChanged(food.name);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Alimento cadastrado.')),
+                  );
+                }
+              },
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -165,7 +198,7 @@ class _FoodSearchPageState extends State<FoodSearchPage> {
             return ListTile(
               title: Text(food.name),
               subtitle: Text('${food.category} · $kcal kcal/100 g'),
-              onTap: () => _select(food),
+              onTap: widget.selectPortion ? () => _select(food) : null,
             );
           },
         );
