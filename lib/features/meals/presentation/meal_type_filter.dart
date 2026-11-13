@@ -16,6 +16,8 @@ class MealTypeFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<MealType?>(
         initialValue: value,
+        isExpanded: true,
+        itemHeight: null,
         decoration: const InputDecoration(labelText: 'Filtrar por refeição'),
         items: [
           const DropdownMenuItem<MealType?>(

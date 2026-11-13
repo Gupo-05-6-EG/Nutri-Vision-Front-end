@@ -228,9 +228,12 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Expanded(child: _buildTotal(context)),
+              Semantics(liveRegion: true, child: _buildTotal(context)),
               FilledButton.icon(
                 onPressed: _status == _Status.ready && _estimate != null
                     ? _save
@@ -272,7 +275,7 @@ Color confidenceColor(ConfidenceLevel level) {
     case ConfidenceLevel.high:
       return const Color(0xFF2E7D32);
     case ConfidenceLevel.medium:
-      return const Color(0xFFB26A00);
+      return const Color(0xFF805000);
     case ConfidenceLevel.low:
       return const Color(0xFFC62828);
   }
