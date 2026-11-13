@@ -10,6 +10,7 @@ import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/token_storage.dart';
 import 'features/auth/presentation/welcome_page.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
+import 'features/foods/data/food_repository.dart';
 import 'features/meals/data/meal_repository.dart';
 import 'features/meals/domain/meal_type.dart';
 import 'features/meals/presentation/meal_history_page.dart';
@@ -146,6 +147,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               screening: _screening,
               plans: _plans,
               reminders: _reminders,
+              foods: FoodRepository(_client, patientId: _auth.userId),
               push: widget.push,
             ),
         },

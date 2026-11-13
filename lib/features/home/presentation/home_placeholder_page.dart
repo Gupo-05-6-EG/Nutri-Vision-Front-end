@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../foods/data/food_repository.dart';
+import '../../foods/presentation/food_search_page.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
 import '../../reminders/application/push_service.dart';
@@ -19,6 +21,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.plans,
     required this.reminders,
     required this.push,
+    this.foods,
     super.key,
   });
 
@@ -27,6 +30,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final PlanRepository plans;
   final ReminderRepository reminders;
   final PushService push;
+  final FoodRepository? foods;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -109,6 +113,21 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
               ),
+              if (foods case final repository?) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => FoodSearchPage(
+                        repository: repository,
+                        selectPortion: false,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.restaurant_outlined),
+                  label: const Text('Meus alimentos'),
+                ),
+              ],
             ],
           ),
         ),
