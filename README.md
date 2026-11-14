@@ -32,6 +32,7 @@ lib/
 │       ├── api_client.dart       # cliente HTTP + injeção do JWT
 │       └── api_exception.dart
 └── features/
+    ├── challenges/               # desafios entre amigos e placar (RF05.2, RF05.3)
     ├── foods/                    # busca manual de alimentos (RF02.2)
     ├── meals/                    # histórico de refeições (RF04, RF12)
     ├── plan/                     # plano prescrito e progresso (RF06, RF25)

@@ -9,6 +9,7 @@ import 'features/auth/application/auth_controller.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/token_storage.dart';
 import 'features/auth/presentation/welcome_page.dart';
+import 'features/challenges/data/challenge_repository.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
 import 'features/meals/data/meal_repository.dart';
 import 'features/meals/domain/meal_type.dart';
@@ -43,6 +44,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
   late final PlanRepository _plans = PlanRepository(_client);
   late final MealRepository _meals = MealRepository(_client);
   late final ReminderRepository _reminders = ReminderRepository(_client);
+  late final ChallengeRepository _challenges = ChallengeRepository(_client);
   late final PushRegistration _pushRegistration = PushRegistration(
     auth: _auth,
     repository: _reminders,
@@ -147,6 +149,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               plans: _plans,
               reminders: _reminders,
               push: widget.push,
+              challenges: _challenges,
             ),
         },
       ),

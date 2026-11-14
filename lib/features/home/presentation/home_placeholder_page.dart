@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../challenges/data/challenge_repository.dart';
+import '../../challenges/presentation/challenges_page.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
 import '../../reminders/application/push_service.dart';
@@ -19,6 +21,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.plans,
     required this.reminders,
     required this.push,
+    this.challenges,
     super.key,
   });
 
@@ -27,6 +30,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final PlanRepository plans;
   final ReminderRepository reminders;
   final PushService push;
+  final ChallengeRepository? challenges;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -51,6 +55,19 @@ class HomePlaceholderPage extends StatelessWidget {
           repository: reminders,
           patientId: patientId,
           push: push,
+        ),
+      ),
+    );
+  }
+
+  void _openChallenges(BuildContext context, int patientId) {
+    final repo = challenges;
+    if (repo == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChallengesPage(
+          repository: repo,
+          patientId: patientId,
         ),
       ),
     );
@@ -109,6 +126,16 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
               ),
+              if (challenges != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: auth.userId == null
+                      ? null
+                      : () => _openChallenges(context, auth.userId!),
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Desafios entre amigos'),
+                ),
+              ],
             ],
           ),
         ),
