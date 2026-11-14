@@ -1,18 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
+import '../application/meal_sync_service.dart';
 import '../data/meal_repository.dart';
 import '../domain/meal.dart';
 import '../domain/meal_type.dart';
 import 'meal_type_filter.dart';
 
-/// Historico de refeicoes (RF04, RF12).
+/// Historico de refeicoes (RF04, RF12, RNF07).
 ///
 /// Feed cronologico do dia escolhido (abre no dia atual), com o total de
 /// calorias em uma barra de progresso contra a meta diaria e os macros do dia.
 /// Pode filtrar por tipo de refeicao (RF19); com filtro, os totais sao so os
 /// daquele tipo.
+///
+/// Refeicoes registradas sem internet (`isSynced == false`) aparecem com
+/// indicador de pendencia e sao atualizadas automaticamente quando o
+/// [syncService] conclui o envio em lote.
 class MealHistoryPage extends StatefulWidget {
   const MealHistoryPage({
     required this.repository,
@@ -20,6 +27,7 @@ class MealHistoryPage extends StatefulWidget {
     required this.dailyGoalKcal,
     this.today,
     this.initialType,
+    this.syncService,
     super.key,
   });
 
@@ -35,6 +43,10 @@ class MealHistoryPage extends StatefulWidget {
   /// Filtro ja aplicado ao abrir (ex.: vindo do lembrete de uma refeicao).
   final MealType? initialType;
 
+  /// Servico de sincronizacao offline opcional; quando conclui um lote, a tela
+  /// recarrega o dia automaticamente.
+  final MealSyncService? syncService;
+
   @override
   State<MealHistoryPage> createState() => _MealHistoryPageState();
 }
@@ -45,6 +57,7 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
   late final DateTime _today = _dateOnly(widget.today ?? DateTime.now());
   late DateTime _day = _today;
   late MealType? _type = widget.initialType;
+  StreamSubscription<int>? _syncSubscription;
 
   /// Identifica a carga mais recente: respostas de dias antigos sao ignoradas.
   int _requestId = 0;
@@ -56,7 +69,14 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
   @override
   void initState() {
     super.initState();
+    _syncSubscription = widget.syncService?.onSynced.listen((_) => _load());
     _load();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_syncSubscription?.cancel());
+    super.dispose();
   }
 
   static DateTime _dateOnly(DateTime time) =>
@@ -84,6 +104,14 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
         _errorMessage = _describe(error);
       });
     }
+  }
+
+  Future<void> _syncNow() async {
+    final syncService = widget.syncService;
+    if (syncService == null) return;
+    await syncService.syncNow(patientId: widget.patientId);
+    if (!mounted) return;
+    await _load();
   }
 
   String _describe(Object error) {
@@ -165,6 +193,8 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
         );
       case _Status.success:
         final consumption = _consumption!;
+        final unsyncedCount =
+            consumption.meals.where((meal) => !meal.isSynced).length;
         return RefreshIndicator(
           onRefresh: _load,
           child: ListView(
@@ -174,6 +204,13 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
                 totals: consumption.totals,
                 goalKcal: widget.dailyGoalKcal,
               ),
+              if (unsyncedCount > 0) ...[
+                const SizedBox(height: 12),
+                _OfflineSyncBanner(
+                  unsyncedCount: unsyncedCount,
+                  onSyncNow: widget.syncService != null ? _syncNow : null,
+                ),
+              ],
               const SizedBox(height: 16),
               if (consumption.meals.isEmpty)
                 _Message(
@@ -189,6 +226,57 @@ class _MealHistoryPageState extends State<MealHistoryPage> {
           ),
         );
     }
+  }
+}
+
+/// Banner informativo quando existem refeicoes locais com `is_synced == false`.
+class _OfflineSyncBanner extends StatelessWidget {
+  const _OfflineSyncBanner({
+    required this.unsyncedCount,
+    this.onSyncNow,
+  });
+
+  final int unsyncedCount;
+  final VoidCallback? onSyncNow;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = unsyncedCount == 1
+        ? '1 refeição salva offline aguardando sincronização.'
+        : '$unsyncedCount refeições salvas offline aguardando sincronização.';
+
+    return Card(
+      key: const Key('offline-sync-banner'),
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(
+              Icons.cloud_upload_outlined,
+              size: 20,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+            if (onSyncNow != null)
+              TextButton(
+                key: const Key('sync-pending-meals'),
+                onPressed: onSyncNow,
+                child: const Text('Sincronizar'),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -267,7 +355,7 @@ class _Macro extends StatelessWidget {
   }
 }
 
-/// Uma refeicao do feed: horario, tipo, itens e calorias.
+/// Uma refeicao do feed: horario, tipo, itens, calorias e status de sincronizacao.
 class _MealCard extends StatelessWidget {
   const _MealCard({required this.meal});
 
@@ -303,6 +391,27 @@ class _MealCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (!meal.isSynced) ...[
+              const SizedBox(height: 6),
+              Row(
+                key: Key('meal-pending-sync-${meal.id}'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cloud_off_outlined,
+                    size: 14,
+                    color: theme.colorScheme.secondary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Pendente de sincronização',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             for (final item in meal.items)
               Padding(

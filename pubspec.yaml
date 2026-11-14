@@ -15,6 +15,9 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   firebase_core: ^5.1.0
   firebase_messaging: ^17.0.1
+  hive: ^2.2.3
+  connectivity_plus: ^7.3.2
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:

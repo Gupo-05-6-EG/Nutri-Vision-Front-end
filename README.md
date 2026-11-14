@@ -11,6 +11,7 @@ histórico de consumo e a gamificação.
 | HTTP | `http` |
 | Configuração | `flutter_dotenv` |
 | Token JWT | `flutter_secure_storage` |
+| Armazenamento Offline | `hive` + `connectivity_plus` (RNF07) |
 | Push (lembretes) | `firebase_core` + `firebase_messaging` (FCM) |
 | Lint | `flutter_lints` |
 | Testes | `flutter_test` + `http/testing` (MockClient) |
@@ -133,6 +134,24 @@ versionadas e o CI as recria. Com as 4 variáveis `FIREBASE_*` vazias (padrão d
   back-end envia para o token de registro, então migrar exige mudar os dois lados.
 - O push só sai se o job do back-end estiver agendado (cron a cada 5 min) e com
   `FCM_CREDENTIALS_FILE` configurado.
+
+## Sincronização offline de refeições (Task 2.3, RNF07)
+
+Quando o dispositivo está sem conexão com a internet, as refeições registradas
+são persistidas localmente no **Hive** com a flag `is_synced = false` e exibidas
+normalmente no histórico diário com o indicador **Pendente de sincronização**.
+
+Assim que a conectividade é restabelecida, o listener de rede
+(`MealSyncService` + `ConnectivityService`) consulta todos os registros locais
+com `is_synced == false` e dispara o envio em lote para a API FastAPI
+(`POST /refeicoes/batch`), atualizando `is_synced = true` após `200 OK`.
+
+| Peça | Onde |
+|---|---|
+| Armazenamento local (Hive) | `features/meals/data/local_meal_store.dart` |
+| Modelo do registro local (`is_synced`) | `features/meals/domain/local_meal_record.dart` |
+| Listener de conectividade e fila de lote | `features/meals/application/meal_sync_service.dart` |
+| Fronteira de rede (`connectivity_plus`) | `core/network/connectivity_service.dart` |
 
 ## CI/CD (RNF08)
 
