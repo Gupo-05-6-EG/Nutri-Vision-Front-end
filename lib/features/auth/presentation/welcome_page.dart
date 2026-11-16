@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../screening/data/screening_repository.dart';
 import '../application/auth_controller.dart';
 import 'autonomous_signup_page.dart';
 import 'link_code_page.dart';
@@ -8,9 +9,10 @@ import 'widgets/auth_widgets.dart';
 
 /// Primeira tela para quem nao tem sessao: login ou um dos dois cadastros.
 class WelcomePage extends StatelessWidget {
-  const WelcomePage({required this.auth, super.key});
+  const WelcomePage({required this.auth, required this.screening, super.key});
 
   final AuthController auth;
+  final ScreeningRepository screening;
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +78,10 @@ class WelcomePage extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(52),
                     ),
-                    onPressed: () =>
-                        _open(context, AutonomousSignupPage(auth: auth)),
+                    onPressed: () => _open(
+                      context,
+                      AutonomousSignupPage(auth: auth, screening: screening),
+                    ),
                     child: const Text('Vou seguir sozinho'),
                   ),
                 ],

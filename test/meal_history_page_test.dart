@@ -101,9 +101,15 @@ Future<void> _pumpPage(
   WidgetTester tester,
   MealRepository repository, {
   double goal = 2000,
+  double textScale = 1,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
       home: MealHistoryPage(
         repository: repository,
         patientId: 1,
@@ -116,6 +122,19 @@ Future<void> _pumpPage(
 }
 
 void main() {
+  testWidgets('historico suporta tela estreita e fonte 200%', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpPage(
+      tester,
+      _repository((_) async => _json(_dia)),
+      textScale: 2,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   group('DailyConsumption.fromJson', () {
     test('le totais e itens e ordena as refeicoes pelo horario', () {
       final consumption = DailyConsumption.fromJson(_dia);
@@ -276,6 +295,30 @@ void main() {
 
       expect(types, [null, 'jantar']);
       expect(find.text('Nenhum jantar registrado neste dia.'), findsOne);
+    });
+
+    testWidgets('abre ja filtrado no tipo pedido (lembrete tocado)', (
+      tester,
+    ) async {
+      final types = <String?>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MealHistoryPage(
+            repository: _repository((request) async {
+              types.add(request.url.queryParameters['tipo']);
+              return _json(_diaVazio);
+            }),
+            patientId: 1,
+            dailyGoalKcal: 2000,
+            today: _today,
+            initialType: MealType.lunch,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(types, ['almoco']);
+      expect(find.text('Nenhum almoço registrado neste dia.'), findsOne);
     });
 
     testWidgets('mostra erro e tenta de novo', (tester) async {

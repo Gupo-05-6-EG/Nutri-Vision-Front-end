@@ -19,6 +19,7 @@ class MealHistoryPage extends StatefulWidget {
     required this.patientId,
     required this.dailyGoalKcal,
     this.today,
+    this.initialType,
     super.key,
   });
 
@@ -31,6 +32,9 @@ class MealHistoryPage extends StatefulWidget {
   /// Dia atual; existe para os testes nao dependerem do relogio.
   final DateTime? today;
 
+  /// Filtro ja aplicado ao abrir (ex.: vindo do lembrete de uma refeicao).
+  final MealType? initialType;
+
   @override
   State<MealHistoryPage> createState() => _MealHistoryPageState();
 }
@@ -40,7 +44,7 @@ enum _Status { loading, success, failure }
 class _MealHistoryPageState extends State<MealHistoryPage> {
   late final DateTime _today = _dateOnly(widget.today ?? DateTime.now());
   late DateTime _day = _today;
-  MealType? _type;
+  late MealType? _type = widget.initialType;
 
   /// Identifica a carga mais recente: respostas de dias antigos sao ignoradas.
   int _requestId = 0;
@@ -218,7 +222,8 @@ class _DailyProgress extends StatelessWidget {
               minHeight: 10,
               borderRadius: BorderRadius.circular(5),
               color: exceeded ? theme.colorScheme.error : null,
-              semanticsLabel: 'Progresso da meta de calorias',
+              semanticsLabel:
+                  '${formatNumber(totals.kcal)} de ${formatNumber(goalKcal)} quilocalorias',
             ),
             const SizedBox(height: 8),
             Text(
@@ -230,8 +235,10 @@ class _DailyProgress extends StatelessWidget {
               ),
             ),
             const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Wrap(
+              spacing: 24,
+              runSpacing: 12,
+              alignment: WrapAlignment.spaceAround,
               children: [
                 _Macro(label: 'Proteínas', grams: totals.protein),
                 _Macro(label: 'Carboidratos', grams: totals.carbs),
@@ -256,7 +263,10 @@ class _Macro extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Text('${formatNumber(grams)} g', style: theme.textTheme.titleMedium),
+        Text(
+          '${formatNumber(grams)} g',
+          style: theme.textTheme.titleMedium,
+        ),
         Text(label, style: theme.textTheme.bodySmall),
       ],
     );
@@ -283,15 +293,16 @@ class _MealCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text('$hour:$minute', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    mealTypeLabel(meal.type),
-                    style: theme.textTheme.titleMedium,
-                  ),
+                Text(
+                  mealTypeLabel(meal.type),
+                  style: theme.textTheme.titleMedium,
                 ),
                 Text(
                   '${formatNumber(meal.totals.kcal)} kcal',
@@ -303,9 +314,11 @@ class _MealCard extends StatelessWidget {
             for (final item in meal.items)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Row(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
-                    Expanded(child: Text(item.name)),
+                    Text(item.name),
                     Text(
                       '${formatNumber(item.grams)} g · '
                       '${formatNumber(item.totals.kcal)} kcal',

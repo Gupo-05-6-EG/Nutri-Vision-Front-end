@@ -32,5 +32,16 @@ void main() {
     test('sem exp nao considera expirado', () {
       expect(JwtUtils.isExpired(_jwt({'sub': '1'})), isFalse);
     });
+
+    test('subject le o id do usuario do claim sub', () {
+      expect(JwtUtils.subject(token), 1);
+      expect(JwtUtils.subject(_jwt({'sub': 42})), 42);
+    });
+
+    test('subject devolve null sem sub valido ou com token malformado', () {
+      expect(JwtUtils.subject(_jwt({'exp': 1})), isNull);
+      expect(JwtUtils.subject(_jwt({'sub': 'abc'})), isNull);
+      expect(JwtUtils.subject('nao-e-um-jwt'), isNull);
+    });
   });
 }
