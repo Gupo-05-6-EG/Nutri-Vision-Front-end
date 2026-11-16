@@ -10,6 +10,7 @@ import 'features/auth/application/auth_controller.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/token_storage.dart';
 import 'features/auth/presentation/welcome_page.dart';
+import 'features/challenges/data/challenge_repository.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
 import 'features/meals/application/meal_sync_service.dart';
 import 'features/meals/data/local_meal_store.dart';
@@ -70,6 +71,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     auth: _auth,
   );
   late final ReminderRepository _reminders = ReminderRepository(_client);
+  late final ChallengeRepository _challenges = ChallengeRepository(_client);
   late final PushRegistration _pushRegistration = PushRegistration(
     auth: _auth,
     repository: _reminders,
@@ -179,6 +181,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               achievements: AchievementRepository(_client),
               foods: FoodRepository(_client, patientId: _auth.userId),
               push: widget.push,
+              challenges: _challenges,
               meals: _meals,
               syncService: _mealSync,
               privacy: _privacy,

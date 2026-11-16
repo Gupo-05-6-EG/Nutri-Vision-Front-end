@@ -4,6 +4,8 @@ import '../../../core/config/env.dart';
 import '../../achievements/data/achievement_repository.dart';
 import '../../achievements/presentation/achievements_page.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../challenges/data/challenge_repository.dart';
+import '../../challenges/presentation/challenges_page.dart';
 import '../../meals/application/meal_sync_service.dart';
 import '../../meals/data/meal_repository.dart';
 import '../../meals/presentation/meal_history_page.dart';
@@ -29,6 +31,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.plans,
     required this.reminders,
     required this.push,
+    this.challenges,
     this.meals,
     this.syncService,
     this.achievements,
@@ -42,6 +45,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final PlanRepository plans;
   final ReminderRepository reminders;
   final PushService push;
+  final ChallengeRepository? challenges;
   final MealRepository? meals;
   final MealSyncService? syncService;
   final AchievementRepository? achievements;
@@ -90,6 +94,19 @@ class HomePlaceholderPage extends StatelessWidget {
           repository: reminders,
           patientId: patientId,
           push: push,
+        ),
+      ),
+    );
+  }
+
+  void _openChallenges(BuildContext context, int patientId) {
+    final repo = challenges;
+    if (repo == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChallengesPage(
+          repository: repo,
+          patientId: patientId,
         ),
       ),
     );
@@ -171,6 +188,16 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
               ),
+              if (challenges != null) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: auth.userId == null
+                      ? null
+                      : () => _openChallenges(context, auth.userId!),
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Desafios entre amigos'),
+                ),
+              ],
               if (achievements case final repository?) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
