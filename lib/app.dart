@@ -13,10 +13,13 @@ import 'features/auth/presentation/welcome_page.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
 import 'features/meals/application/meal_sync_service.dart';
 import 'features/meals/data/local_meal_store.dart';
+import 'features/achievements/data/achievement_repository.dart';
+import 'features/foods/data/food_repository.dart';
 import 'features/meals/data/meal_repository.dart';
 import 'features/meals/domain/meal_type.dart';
 import 'features/meals/presentation/meal_history_page.dart';
 import 'features/plan/data/plan_repository.dart';
+import 'features/privacy/data/privacy_repository.dart';
 import 'features/reminders/application/push_registration.dart';
 import 'features/reminders/application/push_service.dart';
 import 'features/reminders/data/reminder_repository.dart';
@@ -48,10 +51,12 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final ApiClient _client = ApiClient(baseUrl: Env.apiUrl);
+  late final PrivacyRepository _privacy = PrivacyRepository(_client);
   late final AuthController _auth = AuthController(
     client: _client,
     repository: AuthRepository(_client),
     storage: SecureTokenStorage(),
+    privacyRepository: _privacy,
   );
   late final ScreeningRepository _screening = ScreeningRepository(_client);
   late final PlanRepository _plans = PlanRepository(_client);
@@ -171,9 +176,12 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               screening: _screening,
               plans: _plans,
               reminders: _reminders,
+              achievements: AchievementRepository(_client),
+              foods: FoodRepository(_client, patientId: _auth.userId),
               push: widget.push,
               meals: _meals,
               syncService: _mealSync,
+              privacy: _privacy,
             ),
         },
       ),

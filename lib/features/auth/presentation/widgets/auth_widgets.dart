@@ -128,7 +128,10 @@ class AuthPrimaryButton extends StatelessWidget {
           ? const SizedBox(
               height: 22,
               width: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                semanticsLabel: 'Aguarde, processando solicitação',
+              ),
             )
           : Text(label),
     );
@@ -154,23 +157,26 @@ class AuthMessageBanner extends StatelessWidget {
     final foreground =
         isError ? scheme.onErrorContainer : scheme.onSecondaryContainer;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isError ? Icons.error_outline : Icons.info_outline,
-            color: foreground,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(message, style: TextStyle(color: foreground)),
-          ),
-        ],
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.info_outline,
+              color: foreground,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message, style: TextStyle(color: foreground)),
+            ),
+          ],
+        ),
       ),
     );
   }
