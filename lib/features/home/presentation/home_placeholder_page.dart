@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
+import '../../achievements/data/achievement_repository.dart';
+import '../../achievements/presentation/achievements_page.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../foods/data/food_repository.dart';
 import '../../foods/presentation/food_search_page.dart';
@@ -24,6 +26,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.plans,
     required this.reminders,
     required this.push,
+    this.achievements,
     this.foods,
     this.privacy,
     super.key,
@@ -34,6 +37,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final PlanRepository plans;
   final ReminderRepository reminders;
   final PushService push;
+  final AchievementRepository? achievements;
   final FoodRepository? foods;
   final PrivacyRepository? privacy;
 
@@ -131,6 +135,18 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
               ),
+              if (achievements case final repository?) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AchievementsPage(repository: repository),
+                    ),
+                  ),
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: const Text('Minhas conquistas'),
+                ),
+              ],
               if (foods case final repository?) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
