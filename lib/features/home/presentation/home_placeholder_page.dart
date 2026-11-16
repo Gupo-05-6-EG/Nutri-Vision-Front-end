@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../linking/presentation/linking_page.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
 import '../../privacy/data/privacy_repository.dart';
@@ -125,6 +126,16 @@ class HomePlaceholderPage extends StatelessWidget {
                     : () => _openReminders(context, auth.userId!),
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Lembretes de refeição'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LinkingPage(auth: auth),
+                  ),
+                ),
+                icon: const Icon(Icons.link),
+                label: const Text('Vincular nutricionista'),
               ),
             ],
           ),
