@@ -4,6 +4,7 @@
 class Food {
   const Food({
     required this.id,
+    this.origin = 'taco',
     required this.name,
     required this.category,
     required this.kcalPer100g,
@@ -15,6 +16,7 @@ class Food {
   factory Food.fromJson(Map<String, dynamic> json) {
     return Food(
       id: json['id'] as int,
+      origin: json['origem'] as String? ?? 'taco',
       name: json['nome'] as String,
       category: json['categoria'] as String,
       kcalPer100g: (json['kcal_100g'] as num).toDouble(),
@@ -25,6 +27,7 @@ class Food {
   }
 
   final int id;
+  final String origin;
   final String name;
   final String category;
   final double kcalPer100g;
