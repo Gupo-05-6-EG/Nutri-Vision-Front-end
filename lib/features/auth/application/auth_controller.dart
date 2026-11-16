@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../privacy/data/privacy_repository.dart';
 import '../data/auth_models.dart';
 import '../data/auth_repository.dart';
 import '../data/jwt_utils.dart';
@@ -17,9 +18,11 @@ class AuthController extends ChangeNotifier {
     required ApiClient client,
     required AuthRepository repository,
     required TokenStorage storage,
+    PrivacyRepository? privacyRepository,
   })  : _client = client,
         _repository = repository,
-        _storage = storage {
+        _storage = storage,
+        _privacyRepository = privacyRepository ?? PrivacyRepository(client) {
     _client.onUnauthorized = _handleUnauthorized;
   }
 
@@ -29,6 +32,7 @@ class AuthController extends ChangeNotifier {
   final ApiClient _client;
   final AuthRepository _repository;
   final TokenStorage _storage;
+  final PrivacyRepository _privacyRepository;
 
   AuthStatus _status = AuthStatus.unknown;
   String? _notice;
@@ -75,6 +79,9 @@ class AuthController extends ChangeNotifier {
     final result = await _repository.registerPatient(signup);
     await _startSession(result);
   }
+
+  /// Registra o consentimento explícito após o cadastro autenticado.
+  Future<void> registerPrivacyConsent() => _privacyRepository.acceptConsent();
 
   /// Resgata o codigo de vinculo do nutricionista (paciente ja logado).
   Future<LinkedProfessional> linkProfessional(String code) =>
