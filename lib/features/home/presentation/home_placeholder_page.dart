@@ -4,8 +4,11 @@ import '../../../core/config/env.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../foods/data/food_repository.dart';
 import '../../foods/presentation/food_search_page.dart';
+import '../../linking/presentation/linking_page.dart';
 import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
+import '../../privacy/data/privacy_repository.dart';
+import '../../privacy/presentation/privacy_settings_page.dart';
 import '../../reminders/application/push_service.dart';
 import '../../reminders/data/reminder_repository.dart';
 import '../../reminders/presentation/meal_reminders_page.dart';
@@ -22,6 +25,7 @@ class HomePlaceholderPage extends StatelessWidget {
     required this.reminders,
     required this.push,
     this.foods,
+    this.privacy,
     super.key,
   });
 
@@ -31,6 +35,7 @@ class HomePlaceholderPage extends StatelessWidget {
   final ReminderRepository reminders;
   final PushService push;
   final FoodRepository? foods;
+  final PrivacyRepository? privacy;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -66,6 +71,19 @@ class HomePlaceholderPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(Env.appName),
         actions: [
+          if (privacy case final repository?)
+            IconButton(
+              tooltip: 'Privacidade e meus dados',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => PrivacySettingsPage(
+                    auth: auth,
+                    repository: repository,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.privacy_tip_outlined),
+            ),
           IconButton(
             tooltip: 'Sair da conta',
             onPressed: auth.logout,
@@ -128,6 +146,16 @@ class HomePlaceholderPage extends StatelessWidget {
                   label: const Text('Meus alimentos'),
                 ),
               ],
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LinkingPage(auth: auth),
+                  ),
+                ),
+                icon: const Icon(Icons.link),
+                label: const Text('Vincular nutricionista'),
+              ),
             ],
           ),
         ),
