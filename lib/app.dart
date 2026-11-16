@@ -5,27 +5,44 @@ import 'package:flutter/material.dart';
 import 'core/config/app_theme.dart';
 import 'core/config/env.dart';
 import 'core/network/api_client.dart';
+import 'core/network/connectivity_service.dart';
 import 'features/auth/application/auth_controller.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/data/token_storage.dart';
 import 'features/auth/presentation/welcome_page.dart';
 import 'features/challenges/data/challenge_repository.dart';
 import 'features/home/presentation/home_placeholder_page.dart';
+import 'features/meals/application/meal_sync_service.dart';
+import 'features/meals/data/local_meal_store.dart';
+import 'features/achievements/data/achievement_repository.dart';
+import 'features/foods/data/food_repository.dart';
 import 'features/meals/data/meal_repository.dart';
 import 'features/meals/domain/meal_type.dart';
 import 'features/meals/presentation/meal_history_page.dart';
 import 'features/plan/data/plan_repository.dart';
+import 'features/privacy/data/privacy_repository.dart';
 import 'features/reminders/application/push_registration.dart';
 import 'features/reminders/application/push_service.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'features/screening/data/screening_repository.dart';
 
 class NutriVisionApp extends StatefulWidget {
-  const NutriVisionApp({this.push = const DisabledPushService(), super.key});
+  const NutriVisionApp({
+    this.push = const DisabledPushService(),
+    this.localMealStore,
+    this.connectivity = const DisabledConnectivityService(),
+    super.key,
+  });
 
   /// Push dos lembretes de refeicao (RF26); desligado se o Firebase nao
   /// estiver configurado no `.env`.
   final PushService push;
+
+  /// Armazenamento local (Hive) de refeicoes para operacao offline (RNF07).
+  final LocalMealStore? localMealStore;
+
+  /// Listener de conectividade para envio em lote de refeicoes pendentes.
+  final ConnectivityService connectivity;
 
   @override
   State<NutriVisionApp> createState() => _NutriVisionAppState();
@@ -35,14 +52,24 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final ApiClient _client = ApiClient(baseUrl: Env.apiUrl);
+  late final PrivacyRepository _privacy = PrivacyRepository(_client);
   late final AuthController _auth = AuthController(
     client: _client,
     repository: AuthRepository(_client),
     storage: SecureTokenStorage(),
+    privacyRepository: _privacy,
   );
   late final ScreeningRepository _screening = ScreeningRepository(_client);
   late final PlanRepository _plans = PlanRepository(_client);
-  late final MealRepository _meals = MealRepository(_client);
+  late final MealRepository _meals = MealRepository(
+    _client,
+    localStore: widget.localMealStore,
+  );
+  late final MealSyncService _mealSync = MealSyncService(
+    repository: _meals,
+    connectivity: widget.connectivity,
+    auth: _auth,
+  );
   late final ReminderRepository _reminders = ReminderRepository(_client);
   late final ChallengeRepository _challenges = ChallengeRepository(_client);
   late final PushRegistration _pushRegistration = PushRegistration(
@@ -62,6 +89,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
         _pushRegistration.foregroundReminders.listen(_showReminderSnackBar),
       );
     unawaited(_pushRegistration.start());
+    unawaited(_mealSync.start());
     unawaited(_auth.restoreSession());
   }
 
@@ -86,6 +114,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
             patientId: patientId,
             dailyGoalKcal: Env.dailyGoalKcal,
             initialType: type,
+            syncService: _mealSync,
           ),
         ),
       );
@@ -122,6 +151,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
       unawaited(subscription.cancel());
     }
     unawaited(_pushRegistration.dispose());
+    unawaited(_mealSync.dispose());
     _auth.removeListener(_onAuthChanged);
     _auth.dispose();
     _client.close();
@@ -148,8 +178,13 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               screening: _screening,
               plans: _plans,
               reminders: _reminders,
+              achievements: AchievementRepository(_client),
+              foods: FoodRepository(_client, patientId: _auth.userId),
               push: widget.push,
               challenges: _challenges,
+              meals: _meals,
+              syncService: _mealSync,
+              privacy: _privacy,
             ),
         },
       ),
