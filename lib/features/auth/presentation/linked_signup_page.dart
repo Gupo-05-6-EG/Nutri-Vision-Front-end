@@ -5,6 +5,7 @@ import '../data/auth_models.dart';
 import 'auth_error_message.dart';
 import 'auth_validators.dart';
 import 'link_confirmation_page.dart';
+import 'privacy_consent_checkbox.dart';
 import 'widgets/auth_widgets.dart';
 
 /// Passo 2 do cadastro "Tenho nutricionista": cria a conta e, em seguida,
@@ -29,6 +30,7 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _loading = false;
+  bool _accountCreated = false;
   String? _error;
 
   /// Preenchido quando a conta foi criada mas o codigo nao pode ser usado.
@@ -51,17 +53,25 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
     });
 
     try {
-      await widget.auth.registerPatient(
-        PatientSignup(
-          name: _name.text.trim(),
-          email: _email.text.trim(),
-          password: _password.text,
-        ),
-      );
+      if (!_accountCreated) {
+        await widget.auth.registerPatient(
+          PatientSignup(
+            name: _name.text.trim(),
+            email: _email.text.trim(),
+            password: _password.text,
+          ),
+        );
+        _accountCreated = true;
+      }
+      await widget.auth.registerPrivacyConsent();
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = authErrorMessage(error);
+        _error = _accountCreated
+            ? 'Sua conta foi criada, mas não conseguimos registrar o '
+                'consentimento. Verifique sua conexão e tente novamente. '
+                '${authErrorMessage(error)}'
+            : authErrorMessage(error);
         _loading = false;
       });
       return;
@@ -196,12 +206,16 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
               ),
               const SizedBox(height: 8),
               TermsCheckboxField(),
+              const SizedBox(height: 8),
+              PrivacyConsentCheckboxField(),
             ],
           ),
         ),
         const SizedBox(height: 16),
         AuthPrimaryButton(
-          label: 'Criar conta e iniciar jornada!',
+          label: _accountCreated
+              ? 'Salvar consentimento e continuar'
+              : 'Criar conta e iniciar jornada!',
           loading: _loading,
           onPressed: _submit,
         ),
