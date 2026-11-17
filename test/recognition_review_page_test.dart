@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
+import 'package:nutri_vision/features/foods/data/food_repository.dart';
 import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/recognition/data/recognition_repository.dart';
 import 'package:nutri_vision/features/recognition/domain/detected_item.dart';
@@ -21,20 +22,28 @@ final _photo = MemoryImage(
 );
 
 const _arroz = DetectedItem(
-  foodClass: 'arroz',
+  name: 'Arroz, tipo 1, cozido',
+  tacoId: 1,
   confidence: 0.92,
-  preparation: PreparationMethod.cooked,
   grams: 150,
-  box: BoundingBox(left: 0.1, top: 0.1, width: 0.4, height: 0.4),
 );
 
 const _feijao = DetectedItem(
-  foodClass: 'feijao_carioca',
+  name: 'Feijão, carioca, cozido',
+  tacoId: 2,
   confidence: 0.35,
-  preparation: PreparationMethod.cooked,
   grams: 100,
-  box: BoundingBox(left: 0.5, top: 0.5, width: 0.4, height: 0.4),
 );
+
+/// A IA reconheceu, mas nao esta na nossa TACO.
+const _farofa = DetectedItem(name: 'farofa', confidence: 0.7, grams: 30);
+
+/// Nossa TACO falsa: id -> nome.
+const _taco = {
+  1: 'Arroz, tipo 1, cozido',
+  2: 'Feijão, carioca, cozido',
+  3: 'Farofa de mandioca',
+};
 
 http.Response _json(Object body, {int status = 200}) {
   return http.Response(
@@ -51,6 +60,19 @@ class _FakeApi {
   int? failCalculationWith;
 
   Future<http.Response> handle(http.Request request) async {
+    if (request.url.path.endsWith('/alimentos-taco')) {
+      return _json([
+        {
+          'id': 3,
+          'nome': _taco[3],
+          'categoria': 'Cereais',
+          'kcal_100g': 406,
+          'carbs_100g': 80,
+          'prot_100g': 2,
+          'gord_100g': 9,
+        },
+      ]);
+    }
     final body = jsonDecode(request.body) as Map<String, dynamic>;
     if (request.url.path.endsWith('/refeicoes')) {
       savedMeals.add(body);
@@ -61,19 +83,17 @@ class _FakeApi {
     calculations.add(items);
     if (failCalculationWith != null) {
       return _json(
-        {
-          'detail': "Sem mapeamento TACO para a classe 'arroz'",
-        },
+        {'detail': 'Alimento TACO de id 1 nao encontrado'},
         status: failCalculationWith!,
       );
     }
     final out = [
       for (final item in items.cast<Map<String, dynamic>>())
         {
-          'classe': item['classe'],
-          'metodo_preparo': item['metodo_preparo'],
-          'alimento_taco_id': 1,
-          'alimento_taco': 'TACO ${item['classe']}',
+          'classe': null,
+          'metodo_preparo': null,
+          'alimento_taco_id': item['alimento_taco_id'],
+          'alimento_taco': _taco[item['alimento_taco_id']],
           'gramas': item['gramas'],
           'calorias_kcal': item['gramas'],
           'proteinas_g': 1.234,
@@ -99,6 +119,7 @@ Future<_FakeApi> _pumpPage(
   List<DetectedItem> items = const [_arroz, _feijao],
   _FakeApi? api,
   ValueChanged<Object?>? onPop,
+  bool withFoodSearch = true,
 }) async {
   // A foto ocupa a tela padrao de 800x600; a tela alta mostra todos os itens.
   tester.view.physicalSize = const Size(800, 1600);
@@ -106,12 +127,11 @@ Future<_FakeApi> _pumpPage(
   addTearDown(tester.view.reset);
 
   final fake = api ?? _FakeApi();
-  final repository = RecognitionRepository(
-    ApiClient(
-      baseUrl: 'http://api.test/api/v1',
-      httpClient: MockClient(fake.handle),
-    ),
+  final client = ApiClient(
+    baseUrl: 'http://api.test/api/v1',
+    httpClient: MockClient(fake.handle),
   );
+  final repository = RecognitionRepository(client);
   await tester.pumpWidget(
     MaterialApp(
       home: Builder(
@@ -126,6 +146,7 @@ Future<_FakeApi> _pumpPage(
                     photo: _photo,
                     items: items,
                     consumedAt: DateTime.utc(2026, 10, 20, 15, 30),
+                    foods: withFoodSearch ? FoodRepository(client) : null,
                   ),
                 ),
               );
@@ -142,21 +163,51 @@ Future<_FakeApi> _pumpPage(
   return fake;
 }
 
+/// Na folha de edicao: "Trocar alimento" -> busca "farofa" -> 50 g.
+Future<void> _replaceWithFarofa(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('edit-item-replace')));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField), 'farofa');
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Farofa de mandioca'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byKey(const Key('portion-grams')), '50');
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('portion-confirm')));
+  await tester.pumpAndSettle();
+}
+
+Finder _registerButton() => find.widgetWithText(FilledButton, 'Registrar');
+
 void main() {
   group('DetectedItem', () {
-    test('le o resultado da IA', () {
+    test('le o item de GET /analises/{id}', () {
       final item = DetectedItem.fromJson({
-        'classe': 'feijao_carioca',
-        'confianca': 0.42,
-        'metodo_preparo': 'cozido',
+        'alimento': 'Feijão, carioca, cozido',
+        'alimento_taco_id': 2,
         'gramas': 80,
-        'caixa': {'x': 0.1, 'y': 0.2, 'largura': 0.3, 'altura': 0.4},
+        'confianca': 0.42,
+        'calorias_kcal': 60.8,
       });
 
-      expect(item.displayName, 'Feijao carioca');
-      expect(item.preparation, PreparationMethod.cooked);
+      expect(item.displayName, 'Feijão, carioca, cozido');
+      expect(item.tacoId, 2);
+      expect(item.isInTaco, isTrue);
+      expect(item.grams, 80);
+      expect(item.aiGrams, 80);
       expect(item.level, ConfidenceLevel.low);
-      expect(item.box!.height, 0.4);
+    });
+
+    test('item fora da TACO vem sem id', () {
+      final item = DetectedItem.fromJson({
+        'alimento': 'farofa',
+        'alimento_taco_id': null,
+        'gramas': 30,
+        'confianca': 0.7,
+      });
+
+      expect(item.isInTaco, isFalse);
     });
 
     test('faixas de confianca', () {
@@ -166,55 +217,67 @@ void main() {
       expect(ConfidenceLevel.of(0.49), ConfidenceLevel.low);
     });
 
-    test('envia as gramas com no maximo duas casas', () {
+    test('calculo vai pelo id da TACO, com no maximo duas casas', () {
       final item = _arroz.copyWith(grams: 10.456);
       expect(item.toCalculationJson(), {
-        'classe': 'arroz',
-        'metodo_preparo': 'cozido',
+        'alimento_taco_id': 1,
         'gramas': 10.46,
       });
+      // A estimativa original da IA continua como referencia.
+      expect(item.aiGrams, 150);
+    });
+
+    test('trocar o alimento mantem a confianca e a estimativa da IA', () {
+      final item = _farofa.copyWith(tacoId: 3, name: 'Farofa', grams: 40);
+      expect(item.isInTaco, isTrue);
+      expect(item.confidence, 0.7);
+      expect(item.aiGrams, 30);
     });
   });
 
   group('RecognitionReviewPage', () {
-    testWidgets('mostra tags, badges, aviso de baixa confianca e total', (
+    testWidgets('mostra badges, aviso de baixa confianca e total', (
       tester,
     ) async {
       final api = await _pumpPage(tester);
 
       expect(api.calculations, hasLength(1));
-      expect(find.text('Arroz 92%'), findsOneWidget);
+      expect(api.calculations.single, [
+        {'alimento_taco_id': 1, 'gramas': 150},
+        {'alimento_taco_id': 2, 'gramas': 100},
+      ]);
+      expect(find.text('Arroz, tipo 1, cozido'), findsOneWidget);
       expect(find.text('Alta · 92%'), findsOneWidget);
       expect(find.text('Baixa · 35%'), findsOneWidget);
       expect(find.textContaining('não tem certeza de 1 item'), findsOneWidget);
-      expect(find.text('Cozido · 150 g · 150 kcal'), findsOneWidget);
+      expect(find.text('150 g · 150 kcal'), findsOneWidget);
       expect(find.text('Total: 250 kcal'), findsOneWidget);
+      expect(find.bySemanticsLabel('Foto da refeição'), findsOneWidget);
     });
 
-    testWidgets('editar gramas e preparo recalcula', (tester) async {
+    testWidgets('editar gramas recalcula pelo id da TACO', (tester) async {
       final api = await _pumpPage(tester);
 
-      await tester.tap(find.byTooltip('Editar Arroz'));
+      await tester.tap(find.byTooltip('Editar Arroz, tipo 1, cozido'));
       await tester.pumpAndSettle();
+      expect(find.text('Estimativa da IA: 150 g'), findsOneWidget);
       await tester.enterText(find.byKey(const Key('edit-item-grams')), '200,5');
-      await tester.tap(find.text('Frito'));
       await tester.pump();
       await tester.tap(find.byKey(const Key('edit-item-confirm')));
       await tester.pumpAndSettle();
 
       expect(api.calculations.last.first, {
-        'classe': 'arroz',
-        'metodo_preparo': 'frito',
+        'alimento_taco_id': 1,
         'gramas': 200.5,
       });
-      expect(find.text('Frito · 200,5 g · 200,5 kcal'), findsOneWidget);
+      expect(find.text('200,5 g · 200,5 kcal'), findsOneWidget);
       expect(find.text('Total: 300,5 kcal'), findsOneWidget);
     });
 
     testWidgets('gramatura invalida nao pode ser salva', (tester) async {
       await _pumpPage(tester);
 
-      await tester.tap(find.byTooltip('Editar Arroz'));
+      await tester.tap(find.byTooltip('Editar Arroz, tipo 1, cozido'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byKey(const Key('edit-item-grams')), '0');
       await tester.pump();
@@ -225,10 +288,96 @@ void main() {
       expect(save.onPressed, isNull);
     });
 
+    testWidgets('trocar o alimento busca na TACO e recalcula', (tester) async {
+      final api = await _pumpPage(tester);
+
+      await tester.tap(find.byTooltip('Editar Feijão, carioca, cozido'));
+      await tester.pumpAndSettle();
+      await _replaceWithFarofa(tester);
+
+      expect(find.text('Farofa de mandioca'), findsOneWidget);
+      expect(find.text('Feijão, carioca, cozido'), findsNothing);
+      expect(api.calculations.last.last, {
+        'alimento_taco_id': 3,
+        'gramas': 50,
+      });
+      expect(find.text('Total: 200 kcal'), findsOneWidget);
+    });
+
+    testWidgets('sem a busca da TACO nao oferece trocar o alimento', (
+      tester,
+    ) async {
+      await _pumpPage(tester, withFoodSearch: false);
+
+      await tester.tap(find.byTooltip('Editar Arroz, tipo 1, cozido'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('edit-item-replace')), findsNothing);
+    });
+
+    testWidgets('alimento fora da TACO bloqueia o registro ate ser trocado', (
+      tester,
+    ) async {
+      final api = await _pumpPage(tester, items: const [_arroz, _farofa]);
+
+      // So o arroz vai para o calculo; a farofa fica sinalizada
+      expect(api.calculations.single, [
+        {'alimento_taco_id': 1, 'gramas': 150},
+      ]);
+      expect(find.text('Fora da TACO · 30 g'), findsOneWidget);
+      expect(
+        find.textContaining('1 alimento não está na tabela TACO'),
+        findsOneWidget,
+      );
+      expect(find.text('Total: 150 kcal'), findsOneWidget);
+      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+
+      // A folha so oferece trocar (nao ha gramas para editar)
+      await tester.tap(find.byTooltip('Trocar farofa'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('edit-item-grams')), findsNothing);
+      expect(
+        find.textContaining('Este alimento não está na tabela TACO'),
+        findsOneWidget,
+      );
+      await _replaceWithFarofa(tester);
+
+      expect(find.text('Fora da TACO · 30 g'), findsNothing);
+      expect(find.text('Total: 200 kcal'), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(_registerButton()).onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets('excluir o alimento fora da TACO libera o registro', (
+      tester,
+    ) async {
+      final api = await _pumpPage(tester, items: const [_arroz, _farofa]);
+
+      await tester.tap(find.byTooltip('Excluir farofa'));
+      await tester.pumpAndSettle();
+      await tester.tap(_registerButton());
+      await tester.pumpAndSettle();
+
+      final itens = api.savedMeals.single['itens'] as List;
+      expect(itens.map((i) => (i as Map)['nome_alimento']), [
+        'Arroz, tipo 1, cozido',
+      ]);
+    });
+
+    testWidgets('so alimentos fora da TACO: nada a calcular', (tester) async {
+      final api = await _pumpPage(tester, items: const [_farofa]);
+
+      expect(api.calculations, isEmpty);
+      expect(find.text('Total: 0 kcal'), findsOneWidget);
+      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+    });
+
     testWidgets('excluir remove o item e desfazer devolve', (tester) async {
       final api = await _pumpPage(tester);
 
-      await tester.tap(find.byTooltip('Excluir Feijao carioca'));
+      await tester.tap(find.byTooltip('Excluir Feijão, carioca, cozido'));
       await tester.pumpAndSettle();
 
       expect(find.text('Baixa · 35%'), findsNothing);
@@ -245,14 +394,11 @@ void main() {
     testWidgets('sem itens nao deixa registrar', (tester) async {
       await _pumpPage(tester, items: const [_arroz]);
 
-      await tester.tap(find.byTooltip('Excluir Arroz'));
+      await tester.tap(find.byTooltip('Excluir Arroz, tipo 1, cozido'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nenhum alimento na refeição.'), findsOneWidget);
-      final save = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Registrar'),
-      );
-      expect(save.onPressed, isNull);
+      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
     });
 
     testWidgets('registrar fecha o aviso de desfazer de um item excluido', (
@@ -260,25 +406,23 @@ void main() {
     ) async {
       await _pumpPage(tester);
 
-      await tester.tap(find.byTooltip('Excluir Feijao carioca'));
+      await tester.tap(find.byTooltip('Excluir Feijão, carioca, cozido'));
       await tester.pumpAndSettle();
       expect(find.text('Desfazer'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+      await tester.tap(_registerButton());
       await tester.pumpAndSettle();
 
       expect(find.text('abrir'), findsOneWidget);
       expect(find.text('Desfazer'), findsNothing);
     });
 
-    testWidgets('mostra o motivo quando falta mapeamento na TACO', (
-      tester,
-    ) async {
-      await _pumpPage(tester, api: _FakeApi()..failCalculationWith = 422);
+    testWidgets('mostra o motivo quando o calculo falha', (tester) async {
+      await _pumpPage(tester, api: _FakeApi()..failCalculationWith = 404);
 
       expect(
         find.text(
-          "Não foi possível calcular: Sem mapeamento TACO para a classe 'arroz'",
+          'Não foi possível calcular: Alimento TACO de id 1 nao encontrado',
         ),
         findsOneWidget,
       );
@@ -289,7 +433,7 @@ void main() {
       Object? popped;
       final api = await _pumpPage(tester, onPop: (value) => popped = value);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+      await tester.tap(_registerButton());
       await tester.pumpAndSettle();
 
       expect(popped, isTrue);
@@ -302,7 +446,7 @@ void main() {
       );
       expect(meal['tipo'], suggested.apiValue);
       expect((meal['itens'] as List).first, {
-        'nome_alimento': 'TACO arroz',
+        'nome_alimento': 'Arroz, tipo 1, cozido',
         'quantidade_g': 150,
         'calorias_kcal': 150,
         'proteinas_g': 1.23,
@@ -318,7 +462,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jantar').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+      await tester.tap(_registerButton());
       await tester.pumpAndSettle();
 
       expect(api.savedMeals.single['tipo'], 'jantar');

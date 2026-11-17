@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_exception.dart';
 
@@ -52,6 +54,29 @@ class ApiClient {
 
   Future<dynamic> delete(String path) =>
       _send(() => _http.delete(_uri(path), headers: _headers()));
+
+  /// Envia um arquivo em `multipart/form-data` no campo [field] (ex.: a foto
+  /// da refeicao em `POST /analises`).
+  Future<dynamic> postFile(
+    String path, {
+    required String field,
+    required Uint8List bytes,
+    required String filename,
+    required String contentType,
+  }) =>
+      _send(() async {
+        final request = http.MultipartRequest('POST', _uri(path))
+          ..headers.addAll(_headers())
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              field,
+              bytes,
+              filename: filename,
+              contentType: MediaType.parse(contentType),
+            ),
+          );
+        return http.Response.fromStream(await _http.send(request));
+      });
 
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     final http.Response response;

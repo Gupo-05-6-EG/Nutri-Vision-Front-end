@@ -16,6 +16,8 @@ import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
 import '../../privacy/data/privacy_repository.dart';
 import '../../privacy/presentation/privacy_settings_page.dart';
+import '../../recognition/data/recognition_repository.dart';
+import '../../recognition/presentation/photo_analysis_page.dart';
 import '../../reminders/application/push_service.dart';
 import '../../reminders/data/reminder_repository.dart';
 import '../../reminders/presentation/meal_reminders_page.dart';
@@ -37,6 +39,8 @@ class HomePlaceholderPage extends StatelessWidget {
     this.achievements,
     this.foods,
     this.privacy,
+    this.recognition,
+    this.tacoFoods,
     super.key,
   });
 
@@ -51,6 +55,12 @@ class HomePlaceholderPage extends StatelessWidget {
   final AchievementRepository? achievements;
   final FoodRepository? foods;
   final PrivacyRepository? privacy;
+
+  /// Analise da foto pela IA e registro da refeicao revisada.
+  final RecognitionRepository? recognition;
+
+  /// Busca so na TACO, para trocar um alimento na revisao da foto.
+  final FoodRepository? tacoFoods;
 
   void _openPlan(BuildContext context, int patientId) {
     // O teto da triagem so vale se foi calculado por este paciente.
@@ -85,6 +95,26 @@ class HomePlaceholderPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openPhotoMeal(BuildContext context, int patientId) async {
+    final repository = recognition;
+    if (repository == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => PhotoAnalysisPage(
+          repository: repository,
+          patientId: patientId,
+          foods: tacoFoods,
+        ),
+      ),
+    );
+    if (saved == true) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Refeição registrada.')),
+      );
+    }
   }
 
   void _openReminders(BuildContext context, int patientId) {
@@ -157,6 +187,16 @@ class HomePlaceholderPage extends StatelessWidget {
                 icon: const Icon(Icons.insights_outlined),
                 label: const Text('Meu plano e progresso'),
               ),
+              if (recognition != null) ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: auth.userId == null
+                      ? null
+                      : () => _openPhotoMeal(context, auth.userId!),
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: const Text('Registrar refeição por foto'),
+                ),
+              ],
               if (meals != null) ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(

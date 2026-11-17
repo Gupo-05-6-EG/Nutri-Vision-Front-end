@@ -19,6 +19,12 @@ dependencies:
   connectivity_plus: ^7.3.2
   path_provider: ^2.1.6
   share_plus: ^12.0.2
+  # Foto da refeicao para a analise da IA (camera ou galeria).
+  image_picker: ^1.2.4
+  # Fixo: a partir da 0.8.13+18 o plugin exige Flutter >= 3.44, e o CI usa 3.41.7.
+  image_picker_android: 0.8.13+17
+  # MediaType do arquivo no upload multipart da foto.
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:
