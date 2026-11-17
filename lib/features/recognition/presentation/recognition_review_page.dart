@@ -3,7 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../foods/data/food_repository.dart';
+import '../../foods/domain/food.dart';
 import '../../foods/domain/number_format.dart';
+import '../../foods/presentation/food_search_page.dart';
 import '../../meals/domain/meal_type.dart';
 import '../../meals/presentation/meal_type_selector.dart';
 import '../data/recognition_repository.dart';
@@ -13,11 +16,12 @@ import 'edit_item_sheet.dart';
 
 /// Revisao do que a IA identificou na foto (RF02.1, RF02.3).
 ///
-/// Mostra a foto com as tags de cada alimento, a confianca de cada item e
-/// deixa o paciente corrigir as gramas e o preparo ou excluir itens antes de
-/// registrar. O tipo da refeicao vem sugerido pelo horario e pode ser trocado
-/// (RF19). A tabela nutricional e recalculada pela API a cada edicao. Ao
-/// registrar, a tela fecha devolvendo `true` (`Navigator.pop`).
+/// Mostra a foto, a confianca de cada item e deixa o paciente corrigir as
+/// gramas, trocar um alimento por outro da TACO ou excluir itens antes de
+/// registrar. Alimentos que a IA reconheceu mas que nao estao na TACO precisam
+/// ser trocados ou excluidos. O tipo da refeicao vem sugerido pelo horario e
+/// pode ser trocado (RF19). A tabela nutricional e recalculada pela API a cada
+/// edicao. Ao registrar, a tela fecha devolvendo `true` (`Navigator.pop`).
 class RecognitionReviewPage extends StatefulWidget {
   const RecognitionReviewPage({
     required this.repository,
@@ -25,18 +29,23 @@ class RecognitionReviewPage extends StatefulWidget {
     required this.photo,
     required this.items,
     this.consumedAt,
+    this.foods,
     super.key,
   });
 
   final RecognitionRepository repository;
   final int patientId;
 
-  /// Foto enviada para a IA. As caixas dos itens sao fracoes dela.
+  /// Foto enviada para a IA.
   final ImageProvider photo;
   final List<DetectedItem> items;
 
   /// Quando a refeicao foi consumida; padrao: agora.
   final DateTime? consumedAt;
+
+  /// Busca na TACO para trocar um alimento. Precisa buscar so na TACO (sem
+  /// `patientId`): o calculo usa o id do alimento na tabela.
+  final FoodRepository? foods;
 
   @override
   State<RecognitionReviewPage> createState() => _RecognitionReviewPageState();
@@ -54,7 +63,12 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
 
   _Status _status = _Status.calculating;
   NutritionEstimate? _estimate;
+
+  /// Calculo de cada item, na ordem de [_items] (nulo fora da TACO).
+  List<EstimatedItem?> _itemEstimates = const [];
   String _errorMessage = '';
+
+  int get _outsideTaco => _items.where((item) => !item.isInTaco).length;
 
   @override
   void initState() {
@@ -64,27 +78,38 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
 
   Future<void> _calculate() async {
     final requestId = ++_requestId;
-    if (_items.isEmpty) {
+    final inTaco = [
+      for (final item in _items)
+        if (item.isInTaco) item,
+    ];
+    if (inTaco.isEmpty) {
       setState(() {
         _status = _Status.ready;
         _estimate = null;
+        _itemEstimates = List.filled(_items.length, null);
       });
       return;
     }
 
     setState(() => _status = _Status.calculating);
     try {
-      final estimate = await widget.repository.calculate(_items);
+      final estimate = await widget.repository.calculate(inTaco);
       if (!mounted || requestId != _requestId) return;
+      final calculated = estimate.items.iterator;
       setState(() {
         _status = _Status.ready;
         _estimate = estimate;
+        _itemEstimates = [
+          for (final item in _items)
+            item.isInTaco && calculated.moveNext() ? calculated.current : null,
+        ];
       });
     } catch (error) {
       if (!mounted || requestId != _requestId) return;
       setState(() {
         _status = _Status.failure;
         _estimate = null;
+        _itemEstimates = List.filled(_items.length, null);
         _errorMessage = _describe(error);
       });
     }
@@ -95,7 +120,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       if (error.statusCode == null) {
         return 'Sem conexão com a API. Verifique sua internet.';
       }
-      // 422/404 do calculo explicam qual classe ficou sem mapeamento na TACO.
+      // 422/404 do calculo explicam qual alimento nao foi encontrado na TACO.
       if (error.statusCode == 422 || error.statusCode == 404) {
         final detail = _detail(error.message);
         if (detail != null) return 'Não foi possível calcular: $detail';
@@ -113,12 +138,24 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     }
   }
 
+  Future<FoodPortion?> _searchTaco(BuildContext sheetContext) {
+    return Navigator.of(sheetContext).push<FoodPortion>(
+      MaterialPageRoute(
+        builder: (_) => FoodSearchPage(repository: widget.foods!),
+      ),
+    );
+  }
+
   Future<void> _edit(int index) async {
     final edited = await showModalBottomSheet<DetectedItem>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => EditItemSheet(item: _items[index]),
+      builder: (sheetContext) => EditItemSheet(
+        item: _items[index],
+        searchFood:
+            widget.foods == null ? null : () => _searchTaco(sheetContext),
+      ),
     );
     if (edited == null || !mounted) return;
     setState(() => _items[index] = edited);
@@ -149,9 +186,12 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     );
   }
 
+  bool get _canSave =>
+      _status == _Status.ready && _estimate != null && _outsideTaco == 0;
+
   Future<void> _save() async {
     final estimate = _estimate;
-    if (estimate == null) return;
+    if (estimate == null || _outsideTaco > 0) return;
     setState(() => _status = _Status.saving);
     try {
       await widget.repository.saveMeal(
@@ -181,7 +221,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _TaggedPhoto(photo: widget.photo, items: _items),
+          _Photo(photo: widget.photo),
           const SizedBox(height: 16),
           MealTypeSelector(
             value: _type,
@@ -198,6 +238,19 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
+          if (_outsideTaco > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _outsideTaco == 1
+                    ? '1 alimento não está na tabela TACO. Troque por um da '
+                        'tabela ou exclua para registrar.'
+                    : '$_outsideTaco alimentos não estão na tabela TACO. '
+                        'Troque por alimentos da tabela ou exclua para '
+                        'registrar.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           if (_items.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
@@ -209,8 +262,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
           for (var index = 0; index < _items.length; index++)
             _ItemTile(
               item: _items[index],
-              photo: widget.photo,
-              estimate: _estimate?.items.elementAtOrNull(index),
+              estimate: _itemEstimates.elementAtOrNull(index),
               onEdit: () => _edit(index),
               onRemove: () => _remove(index),
             ),
@@ -235,9 +287,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
             children: [
               Semantics(liveRegion: true, child: _buildTotal(context)),
               FilledButton.icon(
-                onPressed: _status == _Status.ready && _estimate != null
-                    ? _save
-                    : null,
+                onPressed: _canSave ? _save : null,
                 icon: _status == _Status.saving
                     ? const SizedBox.square(
                         dimension: 16,
@@ -281,95 +331,38 @@ Color confidenceColor(ConfidenceLevel level) {
   }
 }
 
-/// Foto com uma caixa e uma tag por alimento identificado.
-class _TaggedPhoto extends StatelessWidget {
-  const _TaggedPhoto({required this.photo, required this.items});
+/// Foto enviada para a IA.
+class _Photo extends StatelessWidget {
+  const _Photo({required this.photo});
 
   final ImageProvider photo;
-  final List<DetectedItem> items;
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      // A camera entrega 4:3; as caixas sao fracoes da foto inteira.
       child: AspectRatio(
         aspectRatio: 4 / 3,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final height = constraints.maxHeight;
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                Image(
-                  image: photo,
-                  fit: BoxFit.fill,
-                  semanticLabel: 'Foto da refeição',
-                ),
-                for (final item in items)
-                  if (item.box case final box?)
-                    Positioned(
-                      left: box.left * width,
-                      top: box.top * height,
-                      width: box.width * width,
-                      height: box.height * height,
-                      child: _Tag(
-                        item: item,
-                        color: confidenceColor(item.level),
-                      ),
-                    ),
-              ],
-            );
-          },
+        child: Image(
+          image: photo,
+          fit: BoxFit.cover,
+          semanticLabel: 'Foto da refeição',
         ),
       ),
     );
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag({required this.item, required this.color});
-
-  final DetectedItem item;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (item.confidence * 100).round();
-    return DecoratedBox(
-      decoration: BoxDecoration(border: Border.all(color: color, width: 2)),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: ColoredBox(
-          color: color,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            child: Text(
-              '${item.displayName} $percent%',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 11),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Um alimento: recorte da foto, badge de confianca, porcao e acoes.
+/// Um alimento: badge de confianca, porcao, kcal e acoes.
 class _ItemTile extends StatelessWidget {
   const _ItemTile({
     required this.item,
-    required this.photo,
     required this.estimate,
     required this.onEdit,
     required this.onRemove,
   });
 
   final DetectedItem item;
-  final ImageProvider photo;
   final EstimatedItem? estimate;
   final VoidCallback onEdit;
   final VoidCallback onRemove;
@@ -388,8 +381,6 @@ class _ItemTile extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            _Crop(photo: photo, box: item.box),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,9 +396,13 @@ class _ItemTile extends StatelessWidget {
                         color: color,
                       ),
                       Text(
-                        '${item.preparation.label} · '
-                        '${formatNumber(item.grams)} g$kcal',
-                        style: theme.textTheme.bodySmall,
+                        item.isInTaco
+                            ? '${formatNumber(item.grams)} g$kcal'
+                            : 'Fora da TACO · ${formatNumber(item.grams)} g',
+                        style: item.isInTaco
+                            ? theme.textTheme.bodySmall
+                            : theme.textTheme.bodySmall
+                                ?.copyWith(color: theme.colorScheme.error),
                       ),
                     ],
                   ),
@@ -415,8 +410,12 @@ class _ItemTile extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: 'Editar ${item.displayName}',
-              icon: const Icon(Icons.edit_outlined),
+              tooltip: item.isInTaco
+                  ? 'Editar ${item.displayName}'
+                  : 'Trocar ${item.displayName}',
+              icon: Icon(
+                item.isInTaco ? Icons.edit_outlined : Icons.swap_horiz,
+              ),
               onPressed: onEdit,
             ),
             IconButton(
@@ -451,45 +450,6 @@ class _Badge extends StatelessWidget {
           style: const TextStyle(color: Colors.white, fontSize: 12),
         ),
       ),
-    );
-  }
-}
-
-/// Recorte quadrado da foto na caixa do alimento.
-class _Crop extends StatelessWidget {
-  const _Crop({required this.photo, required this.box});
-
-  static const double size = 56;
-
-  final ImageProvider photo;
-  final BoundingBox? box;
-
-  /// Alinhamento que poe a caixa dentro da janela do recorte.
-  static double _align(double start, double extent) {
-    if (extent >= 1) return 0;
-    return (start / (1 - extent)) * 2 - 1;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final box = this.box;
-    final Widget image;
-    if (box == null || box.width <= 0 || box.height <= 0) {
-      image = Image(image: photo, fit: BoxFit.cover);
-    } else {
-      image = OverflowBox(
-        maxWidth: size / box.width,
-        maxHeight: size / box.height,
-        alignment: Alignment(
-          _align(box.left, box.width),
-          _align(box.top, box.height),
-        ),
-        child: Image(image: photo, fit: BoxFit.fill),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox.square(dimension: size, child: image),
     );
   }
 }

@@ -37,7 +37,7 @@ lib/
     ├── foods/                    # busca manual de alimentos (RF02.2)
     ├── meals/                    # histórico de refeições (RF04, RF12)
     ├── plan/                     # plano prescrito e progresso (RF06, RF25)
-    ├── recognition/              # revisão do que a IA identificou (RF02.1, RF02.3)
+    ├── recognition/              # foto do prato, análise da IA e revisão (RF02.1, RF02.3)
     ├── reminders/                # lembretes de refeição + push FCM (RF26)
     └── health/                   # tela de diagnóstico (temporária)
 test/                             # testes unitários
@@ -135,6 +135,37 @@ versionadas e o CI as recria. Com as 4 variáveis `FIREBASE_*` vazias (padrão d
   back-end envia para o token de registro, então migrar exige mudar os dois lados.
 - O push só sai se o job do back-end estiver agendado (cron a cada 5 min) e com
   `FCM_CREDENTIALS_FILE` configurado.
+
+## Registro de refeição por foto (IA)
+
+Na home, **Registrar refeição por foto** abre a câmera (ou a galeria). A foto vai
+para o back-end em `POST /analises`, que repassa ao serviço de IA
+([Nutri-Vision-IA](https://github.com/Gupo-05-6-EG/Nutri-Vision-IA)); o app consulta
+`GET /analises/{id}` a cada 2 s até a análise terminar (desiste em 2 min).
+
+- **Deu certo:** abre a revisão com os alimentos da TACO, as gramas estimadas e a
+  confiança de cada um. O paciente corrige as gramas, **troca** um alimento por outro
+  da TACO (busca), exclui itens e registra. O recálculo usa
+  `POST /calculo-nutricional` com o `alimento_taco_id`.
+- **Alimento fora da TACO:** a IA reconheceu, mas não está na nossa tabela — aparece
+  como "Fora da TACO" e precisa ser trocado ou excluído antes de registrar.
+- **Foto ruim, nada no prato ou baixa confiança:** a tela explica o motivo e oferece
+  tirar outra foto (com baixa confiança, também dá para revisar os itens mesmo assim).
+- **IA fora do ar ou sem internet:** avisa e permite repetir com a mesma foto.
+
+A foto sai reduzida do aparelho (até 1600 px, JPEG 85%) e não é guardada.
+
+> **iOS:** depois do `flutter create`, adicione ao `ios/Runner/Info.plist` as chaves
+> `NSCameraUsageDescription` e `NSPhotoLibraryUsageDescription` (texto explicando que
+> a foto é usada para identificar os alimentos) — sem elas o iOS fecha o app ao abrir
+> a câmera. No Android não é preciso configurar nada.
+
+| Peça | Onde |
+|---|---|
+| Câmera/galeria (`image_picker`) | `features/recognition/data/photo_picker.dart` |
+| Envio, consulta da análise e cálculo | `features/recognition/data/recognition_repository.dart` |
+| Tela da foto e do andamento | `features/recognition/presentation/photo_analysis_page.dart` |
+| Revisão e troca de alimento | `features/recognition/presentation/recognition_review_page.dart` |
 
 ## Sincronização offline de refeições (Task 2.3, RNF07)
 
