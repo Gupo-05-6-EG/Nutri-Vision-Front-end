@@ -4,6 +4,7 @@ import '../../../app_services.dart';
 import '../../../core/config/theme_controller.dart';
 import '../../../core/ui/nv_colors.dart';
 import '../../../core/ui/nv_widgets.dart';
+import '../../linking/presentation/pending_link_card.dart';
 import '../../shell/presentation/app_routes.dart';
 import '../domain/patient_profile.dart';
 
@@ -108,6 +109,13 @@ class ProfileTab extends StatelessWidget {
                         error: services.profile.error,
                         onRetry: services.profile.refresh,
                       ),
+                      if (profile?.pendingNutritionist case final pending?) ...[
+                        const SizedBox(height: 20),
+                        PendingLinkCard(
+                          services: services,
+                          nutritionist: pending,
+                        ),
+                      ],
                       const SizedBox(height: 28),
                       NvSectionTitle(
                         'Estatísticas',

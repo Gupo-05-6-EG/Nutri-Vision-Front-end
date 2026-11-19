@@ -18,11 +18,13 @@ class PatientProfile {
     this.bmrKcal,
     this.activityLevel,
     this.nutritionist,
+    this.pendingNutritionist,
     this.activePlan,
   });
 
   factory PatientProfile.fromJson(Map<String, dynamic> json) {
     final nutritionist = json['nutricionista'];
+    final pending = json['vinculo_pendente'];
     final plan = json['plano_ativo'];
     return PatientProfile(
       patientId: (json['paciente_id'] as num).toInt(),
@@ -44,6 +46,9 @@ class PatientProfile {
       nutritionist: nutritionist is Map<String, dynamic>
           ? ProfileNutritionist.fromJson(nutritionist)
           : null,
+      pendingNutritionist: pending is Map<String, dynamic>
+          ? ProfileNutritionist.fromJson(pending)
+          : null,
       activePlan: plan is Map<String, dynamic>
           ? ActivePlanSummary.fromJson(plan)
           : null,
@@ -64,6 +69,9 @@ class PatientProfile {
   final DailyGoal goal;
   final Gamification gamification;
   final ProfileNutritionist? nutritionist;
+
+  /// Convite de vínculo resgatado e ainda não aceito.
+  final ProfileNutritionist? pendingNutritionist;
   final ActivePlanSummary? activePlan;
 
   String get firstName => name.trim().split(RegExp(r'\s+')).first;

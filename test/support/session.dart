@@ -62,6 +62,7 @@ Map<String, Object?> profileJson({
   String division = 'Ouro',
   int meals = 36,
   Map<String, Object?>? nutritionist,
+  Map<String, Object?>? pending,
 }) =>
     {
       'paciente_id': id,
@@ -94,5 +95,6 @@ Map<String, Object?> profileJson({
         'refeicoes_registradas': meals,
       },
       'nutricionista': nutritionist,
+      'vinculo_pendente': pending,
       'plano_ativo': null,
     };

@@ -131,6 +131,36 @@ void main() {
     expect(find.text('Focado'), findsOneWidget);
   });
 
+  testWidgets('convite de vinculo pendente aparece no Inicio e no Perfil',
+      (tester) async {
+    const camila = {
+      'id': 10,
+      'nome': 'Dra. Camila Mendes',
+      'crn': 'CRN-3 4289',
+    };
+    await pumpShell(tester, profile: profileJson(pending: camila));
+
+    expect(find.byKey(const Key('pending-link-card')), findsOneWidget);
+    const convite = 'Dra. Camila Mendes (CRN-3 4289) quer acompanhar você '
+        'no Nutri Vision.';
+    expect(find.text(convite), findsOneWidget);
+
+    await tester.tap(find.text('Perfil'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('pending-link-card')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('open-pending-link')));
+    await tester.pumpAndSettle();
+    expect(find.text('Aceitar vínculo'), findsOneWidget);
+    expect(find.text('Recusar'), findsOneWidget);
+  });
+
+  testWidgets('sem convite pendente nao mostra o cartao', (tester) async {
+    await pumpShell(tester);
+
+    expect(find.byKey(const Key('pending-link-card')), findsNothing);
+  });
+
   testWidgets('Inicio sem meta pede a triagem', (tester) async {
     await pumpShell(tester, profile: profileJson(kcal: null, source: null));
 

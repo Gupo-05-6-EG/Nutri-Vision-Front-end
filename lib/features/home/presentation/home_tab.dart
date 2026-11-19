@@ -6,6 +6,7 @@ import '../../../app_services.dart';
 import '../../../core/ui/nv_colors.dart';
 import '../../../core/ui/nv_widgets.dart';
 import '../../achievements/data/achievement_repository.dart';
+import '../../linking/presentation/pending_link_card.dart';
 import '../../meals/domain/meal.dart';
 import '../../shell/presentation/app_routes.dart';
 import '../../shell/presentation/main_shell.dart';
@@ -107,6 +108,10 @@ class _HomeTabState extends State<HomeTab> {
         return TabScroll(
           onRefresh: _refresh,
           children: [
+            if (profile?.pendingNutritionist case final pending?) ...[
+              PendingLinkCard(services: _s, nutritionist: pending),
+              const SizedBox(height: 16),
+            ],
             _GoalCard(
               consumedKcal: totals.kcal,
               goalKcal: goal.isSet ? goal.kcal : null,
