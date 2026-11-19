@@ -10,6 +10,8 @@ class AuthRepository {
   static const registerPatientPath = '/auth/cadastro/paciente';
   static const linkPath = '/link';
 
+  static String previewPath(String code) => '/linking-code/$code/previa';
+
   final ApiClient _client;
 
   /// Login e cadastro devolvem o mesmo `TokenOut`.
@@ -39,6 +41,21 @@ class AuthRepository {
   Future<AuthResult> registerPatient(PatientSignup signup) async {
     final data = await _client.post(registerPatientPath, signup.toJson());
     return _readAuth(data);
+  }
+
+  /// Nome e CRN de quem gerou o codigo, sem resgatar (rota publica: o paciente
+  /// ainda nao tem conta). Codigo invalido ou expirado: 404.
+  Future<ProfessionalPreview> previewLinkCode(String code) async {
+    final data = await _client.get(previewPath(code));
+    final professional = data is Map ? data['nutricionista'] : null;
+    if (professional is! Map || professional['id'] is! int) {
+      throw const ApiException('Resposta inesperada da previa do codigo.');
+    }
+    return ProfessionalPreview(
+      id: professional['id'] as int,
+      name: (professional['nome'] ?? '').toString(),
+      crn: (data['crn'] ?? '').toString(),
+    );
   }
 
   /// Resgata o codigo de vinculo. Exige o token do paciente ja em uso.

@@ -46,3 +46,16 @@ class PatientSignup {
         'senha': password,
       };
 }
+
+/// Quem gerou o codigo de vinculo, mostrado antes de criar a conta (BE-14).
+class ProfessionalPreview {
+  const ProfessionalPreview({
+    required this.id,
+    required this.name,
+    required this.crn,
+  });
+
+  final int id;
+  final String name;
+  final String crn;
+}

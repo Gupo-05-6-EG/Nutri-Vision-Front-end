@@ -7,6 +7,8 @@ import 'auth_validators.dart';
 import 'link_confirmation_page.dart';
 import 'privacy_consent_checkbox.dart';
 import 'widgets/auth_widgets.dart';
+import '../../../core/ui/nv_widgets.dart';
+import '../../linking/presentation/link_code_widgets.dart';
 
 /// Passo 2 do cadastro "Tenho nutricionista": cria a conta e, em seguida,
 /// resgata o codigo de vinculo digitado no passo 1.
@@ -14,11 +16,15 @@ class LinkedSignupPage extends StatefulWidget {
   const LinkedSignupPage({
     required this.auth,
     required this.linkCode,
+    this.professional,
     super.key,
   });
 
   final AuthController auth;
   final String linkCode;
+
+  /// Quem gerou o codigo (previa da API), mostrado antes de criar a conta.
+  final ProfessionalPreview? professional;
 
   @override
   State<LinkedSignupPage> createState() => _LinkedSignupPageState();
@@ -148,12 +154,43 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
     return AuthScaffold(
       title: 'Cadastro',
       children: [
-        Icon(
-          Icons.verified_user_outlined,
-          size: 56,
-          color: theme.colorScheme.primary,
-        ),
-        const SizedBox(height: 16),
+        if (widget.professional case final professional?) ...[
+          Text(
+            'Confirmar profissional?',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          ProfessionalPreviewCard(
+            name: professional.name,
+            crn: professional.crn.isEmpty ? null : professional.crn,
+          ),
+          const SizedBox(height: 12),
+          NvCard(
+            color: theme.colorScheme.surfaceContainerLow,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.card_giftcard, color: theme.colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Bônus de boas-vindas ao criar a conta',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                const XpBadge(xp: 50, prefix: '+'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ] else
+          Icon(
+            Icons.verified_user_outlined,
+            size: 56,
+            color: theme.colorScheme.primary,
+          ),
+        if (widget.professional == null) const SizedBox(height: 16),
         Text(
           'Crie sua conta',
           textAlign: TextAlign.center,

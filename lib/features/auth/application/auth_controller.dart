@@ -84,6 +84,10 @@ class AuthController extends ChangeNotifier {
   Future<void> registerPrivacyConsent() => _privacyRepository.acceptConsent();
 
   /// Resgata o codigo de vinculo do nutricionista (paciente ja logado).
+  /// Quem gerou o codigo (antes de criar a conta).
+  Future<ProfessionalPreview> previewLinkCode(String code) =>
+      _repository.previewLinkCode(code);
+
   Future<LinkedProfessional> linkProfessional(String code) =>
       _repository.linkProfessional(code);
 
