@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/config/env.dart';
@@ -16,6 +18,8 @@ import '../../plan/data/plan_repository.dart';
 import '../../plan/presentation/plan_progress_page.dart';
 import '../../privacy/data/privacy_repository.dart';
 import '../../privacy/presentation/privacy_settings_page.dart';
+import '../../profile/application/profile_controller.dart';
+import '../../profile/domain/patient_profile.dart';
 import '../../recognition/data/recognition_repository.dart';
 import '../../recognition/presentation/photo_analysis_page.dart';
 import '../../reminders/application/push_service.dart';
@@ -41,6 +45,7 @@ class HomePlaceholderPage extends StatelessWidget {
     this.privacy,
     this.recognition,
     this.tacoFoods,
+    this.profile,
     super.key,
   });
 
@@ -62,11 +67,19 @@ class HomePlaceholderPage extends StatelessWidget {
   /// Busca so na TACO, para trocar um alimento na revisao da foto.
   final FoodRepository? tacoFoods;
 
+  /// Perfil do paciente: fonte unica da meta diaria (A4).
+  final ProfileController? profile;
+
+  /// Meta da triagem, quando e ela que vale (sem plano do nutricionista).
+  double? get _screeningGoal {
+    final goal = profile?.goal;
+    return goal != null && goal.source == GoalSource.screening
+        ? goal.kcal
+        : null;
+  }
+
   void _openPlan(BuildContext context, int patientId) {
-    // O teto da triagem so vale se foi calculado por este paciente.
-    final goal = screening.lastGoal;
-    final ceiling =
-        goal != null && goal.patientId == patientId ? goal.dailyKcal : null;
+    final ceiling = _screeningGoal;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PlanProgressPage(
@@ -81,10 +94,7 @@ class HomePlaceholderPage extends StatelessWidget {
   void _openMeals(BuildContext context, int patientId) {
     final mealRepository = meals;
     if (mealRepository == null) return;
-    final goal = screening.lastGoal;
-    final dailyGoal = goal != null && goal.patientId == patientId
-        ? goal.dailyKcal
-        : Env.dailyGoalKcal;
+    final dailyGoal = profile?.goal.kcal;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => MealHistoryPage(
@@ -111,6 +121,7 @@ class HomePlaceholderPage extends StatelessWidget {
       ),
     );
     if (saved == true) {
+      unawaited(profile?.refresh());
       messenger.showSnackBar(
         const SnackBar(content: Text('Refeição registrada.')),
       );

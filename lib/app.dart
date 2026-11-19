@@ -21,6 +21,8 @@ import 'features/meals/domain/meal_type.dart';
 import 'features/meals/presentation/meal_history_page.dart';
 import 'features/plan/data/plan_repository.dart';
 import 'features/privacy/data/privacy_repository.dart';
+import 'features/profile/application/profile_controller.dart';
+import 'features/profile/data/profile_repository.dart';
 import 'features/reminders/application/push_registration.dart';
 import 'features/reminders/application/push_service.dart';
 import 'features/recognition/data/recognition_repository.dart';
@@ -77,6 +79,11 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     localStore: widget.localMealStore,
   );
   late final ChallengeRepository _challenges = ChallengeRepository(_client);
+  late final ProfileController _profile = ProfileController(
+    auth: _auth,
+    repository: ProfileRepository(_client),
+    syncEvents: _mealSync.onSynced,
+  );
   late final PushRegistration _pushRegistration = PushRegistration(
     auth: _auth,
     repository: _reminders,
@@ -117,7 +124,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
           builder: (_) => MealHistoryPage(
             repository: _meals,
             patientId: patientId,
-            dailyGoalKcal: Env.dailyGoalKcal,
+            dailyGoalKcal: _profile.goal.kcal,
             initialType: type,
             syncService: _mealSync,
           ),
@@ -158,6 +165,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     unawaited(_pushRegistration.dispose());
     unawaited(_mealSync.dispose());
     _auth.removeListener(_onAuthChanged);
+    _profile.dispose();
     _auth.dispose();
     _client.close();
     super.dispose();
@@ -191,6 +199,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
               syncService: _mealSync,
               privacy: _privacy,
               recognition: _recognition,
+              profile: _profile,
               tacoFoods: FoodRepository(_client),
             ),
         },
