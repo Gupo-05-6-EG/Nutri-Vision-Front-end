@@ -37,6 +37,12 @@ Future<AppServices> pumpShell(
           if (request.url.path == ProfileRepository.path(7)) {
             return jsonResponse(profile ?? profileJson());
           }
+          if (request.url.path == MealRepository.dailyConsumptionPath) {
+            return jsonResponse(consumptionJson(kcal: 1500));
+          }
+          if (request.url.path == '/gamificacao/conquistas') {
+            return jsonResponse(achievementsJson());
+          }
           return jsonResponse(<Object>[]);
         }),
   );
@@ -78,6 +84,36 @@ void main() {
     expect(find.text('520 XP'), findsOneWidget);
   });
 
+  testWidgets('Inicio mostra a meta no anel, as macros e as conquistas',
+      (tester) async {
+    await pumpShell(tester);
+
+    expect(find.text('Meta Diária'), findsOneWidget);
+    expect(find.text('1.500'), findsOneWidget);
+    expect(find.text('/ 2.000 kcal'), findsOneWidget);
+    expect(find.text('Restam 500 kcal para o seu objetivo!'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Consumido hoje: 1.500 de 2.000 quilocalorias'),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Proteína: 80g de 120g'), findsOneWidget);
+    expect(find.bySemanticsLabel('Carbo: 150g de 200g'), findsOneWidget);
+    expect(find.bySemanticsLabel('Gordura: 40g de 60g'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Suas Conquistas'), 200);
+    expect(find.bySemanticsLabel('Iniciante: obtida'), findsOneWidget);
+    expect(find.text('Focado'), findsOneWidget);
+  });
+
+  testWidgets('Inicio sem meta pede a triagem', (tester) async {
+    await pumpShell(tester, profile: profileJson(kcal: null, source: null));
+
+    expect(
+      find.text('Faça a triagem para calcular a sua meta diária.'),
+      findsOneWidget,
+    );
+    expect(find.text('Calcular minha meta'), findsOneWidget);
+  });
+
   testWidgets('aba Registrar abre o registro por foto', (tester) async {
     await pumpShell(tester);
 
@@ -102,3 +138,27 @@ void main() {
     expect(services.auth.userId, isNull);
   });
 }
+
+Map<String, Object?> consumptionJson({double kcal = 0}) => {
+      'paciente_id': 7,
+      'data': '2026-11-19',
+      'quantidade_refeicoes': kcal > 0 ? 2 : 0,
+      'totais': {
+        'calorias_kcal': kcal,
+        'proteinas_g': 80,
+        'carboidratos_g': 150,
+        'gorduras_g': 40,
+      },
+      'refeicoes': <Object>[],
+    };
+
+List<Map<String, Object?>> achievementsJson() => [
+      {
+        'nome': 'Iniciante',
+        'progresso': 1,
+        'meta': 1,
+        'obtida_em': '2026-11-01T10:00:00Z',
+      },
+      {'nome': 'Focado', 'progresso': 3, 'meta': 30, 'obtida_em': null},
+      {'nome': 'Mestre', 'progresso': 10, 'meta': 100, 'obtida_em': null},
+    ];

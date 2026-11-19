@@ -260,6 +260,7 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      container: true,
       label: semantics,
       excludeSemantics: true,
       child: Container(
@@ -320,6 +321,7 @@ class ProgressRing extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final over = progress > 1;
     return Semantics(
+      container: semanticLabel != null,
       label: semanticLabel,
       excludeSemantics: semanticLabel != null,
       child: SizedBox.square(
