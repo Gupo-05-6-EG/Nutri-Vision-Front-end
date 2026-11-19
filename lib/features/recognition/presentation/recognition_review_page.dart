@@ -318,16 +318,16 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
   }
 }
 
-/// Cor do badge de cada faixa de confianca. Cores fixas (e nao do tema): o
-/// texto do badge e branco, e o `error` do tema escuro e claro demais pra ele.
+/// Cor do badge de cada faixa de confianca, da paleta do prototipo. Fixas (e nao
+/// do tema): o texto do badge e branco nos dois temas.
 Color confidenceColor(ConfidenceLevel level) {
   switch (level) {
     case ConfidenceLevel.high:
-      return const Color(0xFF2E7D32);
+      return const Color(0xFF2B6C00);
     case ConfidenceLevel.medium:
-      return const Color(0xFF805000);
+      return const Color(0xFF8C5000);
     case ConfidenceLevel.low:
-      return const Color(0xFFC62828);
+      return const Color(0xFFBA1A1A);
   }
 }
 

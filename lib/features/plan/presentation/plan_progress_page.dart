@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_colors.dart';
+
 import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
 import '../../meals/domain/meal.dart';
@@ -140,10 +142,6 @@ class _PlanProgressPageState extends State<PlanProgressPage> {
   }
 }
 
-const _proteinColor = Color(0xFFF59E0B);
-const _carbsColor = Color(0xFFEAB308);
-const _fatColor = Color(0xFFDC2626);
-
 /// Calorias e macros do periodo contra as metas, em barras de progresso.
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
@@ -163,6 +161,7 @@ class _ProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final nv = NvColors.of(context);
     final goal = goalKcal;
 
     return Card(
@@ -189,7 +188,7 @@ class _ProgressCard extends StatelessWidget {
               consumed: totals.protein,
               goal: goalProtein,
               unit: 'g',
-              color: _proteinColor,
+              color: nv.protein,
             ),
             const SizedBox(height: 12),
             _GoalBar(
@@ -197,7 +196,7 @@ class _ProgressCard extends StatelessWidget {
               consumed: totals.carbs,
               goal: null,
               unit: 'g',
-              color: _carbsColor,
+              color: nv.carbs,
             ),
             const SizedBox(height: 12),
             _GoalBar(
@@ -205,7 +204,7 @@ class _ProgressCard extends StatelessWidget {
               consumed: totals.fat,
               goal: null,
               unit: 'g',
-              color: _fatColor,
+              color: nv.fat,
             ),
           ],
         ),
