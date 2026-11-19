@@ -155,6 +155,26 @@ Future<void> _fillBody(
 
 void main() {
   group('ScreeningPage', () {
+    testWidgets('campos anunciam o nome, e nao o exemplo', (tester) async {
+      final handle = tester.ensureSemantics();
+      final api = _Api();
+      await _open(
+        tester,
+        ScreeningPage(auth: api.auth, repository: api.screening),
+      );
+
+      for (final (label, unit, hint) in [
+        ('Sua Idade', 'anos', '25'),
+        ('Sua Altura', 'cm', '175'),
+        ('Peso Atual', 'kg', '70.5'),
+      ]) {
+        final node =
+            tester.getSemantics(find.widgetWithText(TextFormField, hint));
+        expect(node.label, startsWith('$label, em $unit'));
+      }
+      handle.dispose();
+    });
+
     testWidgets('valida os campos do passo 1', (tester) async {
       final api = _Api();
       await _open(

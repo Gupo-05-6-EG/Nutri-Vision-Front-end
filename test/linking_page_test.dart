@@ -20,11 +20,14 @@ void main() {
       MockClient((request) async {
         if (request.url.path == '/link') {
           bodies.add(request.body);
-          return jsonResponse({
-            'nutricionista': {'id': 3, 'nome': 'Dra. Camila Mendes'},
-            'vinculado_em': '2026-11-19T12:00:00Z',
-            'status': 'pendente',
-          }, 201);
+          return jsonResponse(
+            {
+              'nutricionista': {'id': 3, 'nome': 'Dra. Camila Mendes'},
+              'vinculado_em': '2026-11-19T12:00:00Z',
+              'status': 'pendente',
+            },
+            201,
+          );
         }
         return http.Response('', 404);
       }),
