@@ -57,6 +57,16 @@ flutter run
 > carrega código nativo gerado nem conflitos de merge nele. O CI roda esse mesmo
 > comando antes do build.
 
+### No navegador
+
+```bash
+flutter create --platforms=web --org br.com.nutrivision .
+flutter run -d chrome     # ou: flutter build web e sirva a pasta build/web
+```
+
+Use `API_URL=http://localhost:8000/api/v1` no `.env`. Na web o armazenamento
+offline (Hive) usa o IndexedDB do navegador, e a câmera abre pelo navegador.
+
 > **Emulador Android:** `localhost` dentro do emulador não é a sua máquina. Use
 > `API_URL=http://10.0.2.2:8000/api/v1` (já é o padrão do `.env.example`).
 
@@ -70,6 +80,7 @@ flutter run
 | `flutter analyze` | análise estática |
 | `dart format .` | formatação |
 | `flutter build apk --debug` | APK de debug |
+| `flutter build web` | build para o navegador (precisa da pasta `web/`) |
 
 ## Variáveis de ambiente
 

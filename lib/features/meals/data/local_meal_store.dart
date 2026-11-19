@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -79,8 +80,9 @@ class HiveMealStore implements LocalMealStore {
     String? directoryPath,
     String boxName = defaultBoxName,
   }) async {
-    final path = directoryPath ?? await _resolveDirectoryPath();
-    Hive.init(path);
+    // Na web o Hive grava no IndexedDB do navegador e nao usa pasta: o
+    // path_provider e o dart:io nao existem la (o app travava ao abrir).
+    if (!kIsWeb) Hive.init(directoryPath ?? await _resolveDirectoryPath());
     final box = await Hive.openBox<Map<dynamic, dynamic>>(boxName);
     return HiveMealStore.fromBox(box);
   }
