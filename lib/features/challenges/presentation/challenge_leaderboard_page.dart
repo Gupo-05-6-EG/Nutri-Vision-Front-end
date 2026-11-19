@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
 import '../data/challenge_repository.dart';
@@ -263,7 +265,6 @@ class InviteFriendsSheet extends StatefulWidget {
 }
 
 class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
-  final _idController = TextEditingController();
   List<FriendSummary> _friends = const [];
   final Set<int> _selectedIds = {};
   bool _sending = false;
@@ -277,7 +278,6 @@ class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
 
   @override
   void dispose() {
-    _idController.dispose();
     super.dispose();
   }
 
@@ -285,19 +285,6 @@ class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
     final friends = await widget.repository.listFriends(widget.patientId);
     if (!mounted) return;
     setState(() => _friends = friends);
-  }
-
-  void _addTypedId() {
-    final id = int.tryParse(_idController.text.trim());
-    if (id == null || id <= 0 || id == widget.patientId) {
-      setState(() => _errorText = 'Informe o ID numérico de um amigo.');
-      return;
-    }
-    setState(() {
-      _selectedIds.add(id);
-      _idController.clear();
-      _errorText = null;
-    });
   }
 
   Future<void> _sendInvites() async {
@@ -339,6 +326,12 @@ class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
           children: [
             Text('Convidar amigos', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
+            if (_friends.isEmpty)
+              Text(
+                'Você ainda não tem amigos no app. Convide pelo e-mail na aba '
+                'Social e eles aparecem aqui.',
+                style: theme.textTheme.bodySmall,
+              ),
             if (_friends.isNotEmpty) ...[
               Wrap(
                 spacing: 8,
@@ -347,6 +340,7 @@ class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
                   for (final friend in _friends)
                     FilterChip(
                       key: Key('sheet-friend-chip-${friend.patientId}'),
+                      avatar: NvAvatar(name: friend.displayName, size: 24),
                       label: Text(friend.displayName),
                       selected: _selectedIds.contains(friend.patientId),
                       onSelected: (_) {
@@ -363,45 +357,11 @@ class _InviteFriendsSheetState extends State<InviteFriendsSheet> {
               ),
               const SizedBox(height: 12),
             ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const Key('sheet-friend-id-input'),
-                    controller: _idController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'ID do amigo',
-                      errorText: _errorText,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: OutlinedButton(
-                    key: const Key('sheet-add-friend-button'),
-                    onPressed: _addTypedId,
-                    child: const Text('Adicionar'),
-                  ),
-                ),
-              ],
-            ),
-            if (_selectedIds.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final id in _selectedIds)
-                    InputChip(
-                      label: Text('Amigo #$id'),
-                      onDeleted: () => setState(() => _selectedIds.remove(id)),
-                    ),
-                ],
+            if (_errorText != null)
+              Text(
+                _errorText!,
+                style: TextStyle(color: theme.colorScheme.error),
               ),
-            ],
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../../core/network/api_exception.dart';
 import '../data/challenge_repository.dart';
 import '../domain/challenge.dart';
@@ -30,12 +32,10 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
     text: ChallengeType.meals.defaultRule,
   );
   final _durationController = TextEditingController(text: '7');
-  final _friendIdController = TextEditingController();
 
   ChallengeType _type = ChallengeType.meals;
   bool _ruleCustomized = false;
   bool _saving = false;
-  String? _friendInputError;
 
   List<FriendSummary> _friends = const [];
   final Set<int> _selectedFriendIds = {};
@@ -51,7 +51,6 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
     _nameController.dispose();
     _ruleController.dispose();
     _durationController.dispose();
-    _friendIdController.dispose();
     super.dispose();
   }
 
@@ -90,35 +89,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
       } else {
         _selectedFriendIds.add(friendId);
       }
-      _friendInputError = null;
     });
-  }
-
-  void _addFriendById() {
-    final raw = _friendIdController.text.trim();
-    final id = int.tryParse(raw);
-    if (id == null || id <= 0) {
-      setState(() => _friendInputError = 'Informe um ID numérico válido.');
-      return;
-    }
-    if (id == widget.patientId) {
-      setState(
-        () => _friendInputError = 'Você já participa como criador do desafio.',
-      );
-      return;
-    }
-    setState(() {
-      _selectedFriendIds.add(id);
-      _friendIdController.clear();
-      _friendInputError = null;
-    });
-  }
-
-  String _friendLabel(int id) {
-    for (final friend in _friends) {
-      if (friend.patientId == id) return friend.displayName;
-    }
-    return 'Amigo #$id';
   }
 
   Future<void> _submit() async {
@@ -226,6 +197,12 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
           const SizedBox(height: 24),
           Text('Convidar amigos', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
+          if (_friends.isEmpty)
+            Text(
+              'Você ainda não tem amigos no app. Convide pelo e-mail na aba '
+              'Social e eles aparecem aqui.',
+              style: theme.textTheme.bodySmall,
+            ),
           if (_friends.isNotEmpty) ...[
             Text(
               'Toque nos amigos que deseja convidar:',
@@ -239,6 +216,7 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
                 for (final friend in _friends)
                   FilterChip(
                     key: Key('friend-chip-${friend.patientId}'),
+                    avatar: NvAvatar(name: friend.displayName, size: 24),
                     label: Text(friend.displayName),
                     selected: _selectedFriendIds.contains(friend.patientId),
                     onSelected: (_) => _toggleFriend(friend.patientId),
@@ -246,49 +224,6 @@ class _CreateChallengePageState extends State<CreateChallengePage> {
               ],
             ),
             const SizedBox(height: 12),
-          ],
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const Key('invite-friend-id-input'),
-                  controller: _friendIdController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'ID do amigo',
-                    hintText: 'Ex.: 12',
-                    errorText: _friendInputError,
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: OutlinedButton.icon(
-                  key: const Key('add-friend-id-button'),
-                  onPressed: _addFriendById,
-                  icon: const Icon(Icons.person_add_alt_1),
-                  label: const Text('Adicionar'),
-                ),
-              ),
-            ],
-          ),
-          if (_selectedFriendIds.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                for (final id in _selectedFriendIds)
-                  InputChip(
-                    key: Key('selected-friend-$id'),
-                    label: Text(_friendLabel(id)),
-                    onDeleted: () => _toggleFriend(id),
-                  ),
-              ],
-            ),
           ],
           const SizedBox(height: 24),
           FilledButton.icon(
