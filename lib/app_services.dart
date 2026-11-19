@@ -1,3 +1,4 @@
+import 'core/config/theme_controller.dart';
 import 'core/network/api_client.dart';
 import 'features/achievements/data/achievement_repository.dart';
 import 'features/auth/application/auth_controller.dart';
@@ -31,7 +32,8 @@ class AppServices {
     required this.achievements,
     required this.privacy,
     this.syncService,
-  });
+    ThemeController? theme,
+  }) : theme = theme ?? ThemeController(store: MemoryThemePreferenceStore());
 
   final ApiClient client;
   final AuthController auth;
@@ -46,6 +48,9 @@ class AppServices {
   final ChallengeRepository challenges;
   final AchievementRepository achievements;
   final PrivacyRepository privacy;
+
+  /// Modo de exibição (claro, escuro ou sistema).
+  final ThemeController theme;
 
   /// Ranking semanal e amizades.
   late final SocialRepository social = SocialRepository(client);

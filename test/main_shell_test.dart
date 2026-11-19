@@ -206,12 +206,75 @@ void main() {
     expect(responses.single, 'PUT /amizades/3/responder {"aceitar":true}');
   });
 
+  testWidgets('Perfil mostra identidade, estatisticas e divisao',
+      (tester) async {
+    await pumpShell(tester, initialTab: 3);
+
+    expect(find.text('Alex Silva'), findsOneWidget);
+    expect(find.text('Membro desde Fevereiro de 2024'), findsOneWidget);
+    expect(find.text('12 dias de ofensiva'), findsOneWidget);
+    expect(find.text('Divisão Ouro'), findsOneWidget);
+    expect(find.bySemanticsLabel('Ofensiva Atual: 12'), findsOneWidget);
+    expect(find.bySemanticsLabel('Total de XP: 520'), findsOneWidget);
+    expect(find.bySemanticsLabel('Refeições Feitas: 36'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'Divisão Atual · faltam 980 XP para Diamante: Ouro',
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('Meta Diária de Calorias'), 200);
+    expect(find.text('2.000 kcal'), findsOneWidget);
+    expect(find.text('Calculada pela sua triagem'), findsOneWidget);
+  });
+
+  testWidgets('Perfil troca o modo de exibicao para escuro', (tester) async {
+    final services = await pumpShell(tester, initialTab: 3);
+
+    await tester.scrollUntilVisible(find.text('Modo de Exibição'), 200);
+    expect(find.text('Sistema'), findsOneWidget);
+    await tester.tap(find.text('Modo de Exibição'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Escuro'));
+    await tester.pumpAndSettle();
+
+    expect(services.theme.mode, ThemeMode.dark);
+    expect(find.text('Escuro'), findsOneWidget);
+  });
+
+  testWidgets('Perfil com plano do nutricionista nao deixa refazer a meta',
+      (tester) async {
+    await pumpShell(
+      tester,
+      initialTab: 3,
+      profile: profileJson(
+        source: 'plano',
+        nutritionist: {
+          'id': 3,
+          'nome': 'Dra. Camila Mendes',
+          'crn': 'CRN-3 4289',
+        },
+      ),
+    );
+
+    await tester.scrollUntilVisible(find.text('Meta Diária de Calorias'), 200);
+    expect(find.text('Definida pelo seu nutricionista'), findsOneWidget);
+    expect(find.text('Dra. Camila Mendes'), findsOneWidget);
+    await tester.tap(find.text('Meta Diária de Calorias'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('definida pelo seu nutricionista'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('aba Perfil tem o sair da conta', (tester) async {
     final services = await pumpShell(tester, initialTab: 3);
 
-    await tester.ensureVisible(find.text('Sair da conta'));
-    await tester.tap(find.text('Sair da conta'));
+    await tester.scrollUntilVisible(find.text('Sair da conta'), 300);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Sair da conta'));
+    await tester.pump();
 
     expect(services.auth.userId, isNull);
   });

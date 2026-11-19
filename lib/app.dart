@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'app_services.dart';
 import 'core/config/app_theme.dart';
+import 'core/config/theme_controller.dart';
 import 'core/config/env.dart';
 import 'core/network/api_client.dart';
 import 'core/network/connectivity_service.dart';
@@ -89,7 +90,9 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     repository: _reminders,
     push: widget.push,
   );
+  final ThemeController _theme = ThemeController();
   late final AppServices _services = AppServices(
+    theme: _theme,
     client: _client,
     auth: _auth,
     profile: _profile,
@@ -118,6 +121,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     unawaited(_pushRegistration.start());
     unawaited(_mealSync.start());
     unawaited(_auth.restoreSession());
+    unawaited(_theme.load());
   }
 
   // Ao perder a sessao (logout ou 401), descarta qualquer tela empilhada.
@@ -181,6 +185,7 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
     unawaited(_mealSync.dispose());
     _auth.removeListener(_onAuthChanged);
     _profile.dispose();
+    _theme.dispose();
     _auth.dispose();
     _client.close();
     super.dispose();
@@ -188,7 +193,15 @@ class _NutriVisionAppState extends State<NutriVisionApp> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _theme,
+      builder: (context, _) => _buildApp(context),
+    );
+  }
+
+  Widget _buildApp(BuildContext context) {
     return MaterialApp(
+      themeMode: _theme.mode,
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _messengerKey,
       title: Env.appName,
