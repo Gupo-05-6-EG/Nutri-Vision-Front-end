@@ -17,6 +17,7 @@ class CameraCapturePage extends StatefulWidget {
     required this.createEngine,
     this.pickFromGallery,
     this.pickWithSystemCamera,
+    this.captureTimeout = const Duration(seconds: 15),
     super.key,
   });
 
@@ -27,6 +28,10 @@ class CameraCapturePage extends StatefulWidget {
 
   /// Câmera do sistema, usada quando esta câmera não abre.
   final PickPhoto? pickWithSystemCamera;
+
+  /// Limite para a câmera devolver a foto. Se ela travar, o botão volta a
+  /// funcionar e o paciente pode tentar de novo ou usar a galeria.
+  final Duration captureTimeout;
 
   @override
   State<CameraCapturePage> createState() => _CameraCapturePageState();
@@ -64,14 +69,18 @@ class _CameraCapturePageState extends State<CameraCapturePage> {
   Future<void> _capture() async {
     setState(() => _state = _CameraState.capturing);
     try {
-      final photo = await _engine.takePicture();
+      final photo = await _engine.takePicture().timeout(widget.captureTimeout);
       if (!mounted) return;
       Navigator.of(context).pop(photo.withPlate(_plate));
     } on Object {
       if (!mounted) return;
       setState(() => _state = _CameraState.ready);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível tirar a foto.')),
+        const SnackBar(
+          content: Text(
+            'Não foi possível tirar a foto. Tente de novo ou escolha da galeria.',
+          ),
+        ),
       );
     }
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -8,9 +9,10 @@ import 'package:nutri_vision/features/recognition/data/photo_picker.dart';
 import 'package:nutri_vision/features/recognition/presentation/camera_capture_page.dart';
 
 class _FakeCamera implements CameraEngine {
-  _FakeCamera({this.fails = false, this.cameras = 2});
+  _FakeCamera({this.fails = false, this.cameras = 2, this.hangs = false});
 
   final bool fails;
+  final bool hangs;
   final int cameras;
   bool flash = false;
   int switches = 0;
@@ -28,10 +30,14 @@ class _FakeCamera implements CameraEngine {
   double get aspectRatio => 3 / 4;
 
   @override
-  Future<PickedPhoto> takePicture() async => PickedPhoto(
-        bytes: Uint8List.fromList([1, 2, 3]),
-        filename: 'refeicao.jpg',
-      );
+  Future<PickedPhoto> takePicture() => hangs
+      ? Completer<PickedPhoto>().future // nunca termina
+      : Future.value(
+          PickedPhoto(
+            bytes: Uint8List.fromList([1, 2, 3]),
+            filename: 'refeicao.jpg',
+          ),
+        );
 
   @override
   bool get supportsFlash => true;
@@ -101,6 +107,25 @@ void main() {
     expect(photo.plateType, PlateType.deep);
     expect(photo.bytes, [1, 2, 3]);
     expect(camera.disposed, isTrue);
+  });
+
+  testWidgets('captura travada libera o botao depois do limite',
+      (tester) async {
+    Object? result = 'nada';
+    final camera = _FakeCamera(hangs: true);
+    await _open(tester, camera, onResult: (r) => result = r);
+
+    await tester.tap(find.bySemanticsLabel('Tirar foto'));
+    await tester.pump(const Duration(seconds: 16));
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Não foi possível tirar a foto. Tente de novo ou escolha da galeria.',
+      ),
+      findsOneWidget,
+    );
+    expect(result, 'nada'); // continua na camera
   });
 
   testWidgets('flash e troca de camera', (tester) async {
