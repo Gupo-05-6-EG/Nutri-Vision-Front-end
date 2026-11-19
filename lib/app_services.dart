@@ -12,6 +12,7 @@ import 'features/recognition/data/recognition_repository.dart';
 import 'features/reminders/application/push_service.dart';
 import 'features/reminders/data/reminder_repository.dart';
 import 'features/screening/data/screening_repository.dart';
+import 'features/social/data/social_repository.dart';
 
 /// Repositorios e controladores do app, criados uma vez so em `app.dart` e
 /// repassados as telas. Antes alguns eram recriados a cada rebuild da raiz.
@@ -45,6 +46,9 @@ class AppServices {
   final ChallengeRepository challenges;
   final AchievementRepository achievements;
   final PrivacyRepository privacy;
+
+  /// Ranking semanal e amizades.
+  late final SocialRepository social = SocialRepository(client);
 
   /// Busca so na TACO (trocar ou adicionar alimento na revisao da refeicao).
   late final FoodRepository tacoFoods = FoodRepository(client);

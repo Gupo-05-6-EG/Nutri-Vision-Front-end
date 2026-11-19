@@ -21,6 +21,9 @@ import 'package:nutri_vision/features/shell/presentation/main_shell.dart';
 
 import 'support/session.dart';
 
+final invites = <String>[];
+final responses = <String>[];
+
 /// Monta as abas com a API falsa e um paciente (7) logado.
 Future<AppServices> pumpShell(
   WidgetTester tester, {
@@ -42,6 +45,21 @@ Future<AppServices> pumpShell(
           }
           if (request.url.path == '/gamificacao/conquistas') {
             return jsonResponse(achievementsJson());
+          }
+          if (request.url.path == '/gamificacao/leaderboard') {
+            return jsonResponse(rankingJson());
+          }
+          if (request.url.path == '/amizades' && request.method == 'GET') {
+            return jsonResponse(friendshipsJson());
+          }
+          if (request.url.path == '/amizades' && request.method == 'POST') {
+            invites.add(request.body);
+            return jsonResponse({'id': 9}, 201);
+          }
+          if (request.url.path.startsWith('/amizades/')) {
+            responses
+                .add('${request.method} ${request.url.path} ${request.body}');
+            return jsonResponse({'id': 3});
           }
           return jsonResponse(<Object>[]);
         }),
@@ -140,6 +158,54 @@ void main() {
     expect(find.text('Adicionar alimento'), findsOneWidget);
   });
 
+  testWidgets('Social mostra o ranking da semana com voce em destaque',
+      (tester) async {
+    await pumpShell(tester, initialTab: 2);
+
+    expect(find.text('Ranking Social'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        '1º lugar: Maria S., 1.250 XP na semana, ofensiva de 12 dias',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        '4º lugar: Você, 520 XP na semana, ofensiva de 3 dias',
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(find.text('Pedidos de amizade'), 200);
+    expect(find.text('Carlos Mendes quer ser seu amigo'), findsOneWidget);
+  });
+
+  testWidgets('Social: convidar amigo pelo e-mail e aceitar pedido',
+      (tester) async {
+    invites.clear();
+    responses.clear();
+    await pumpShell(tester, initialTab: 2);
+
+    await tester.tap(find.text('Convidar Amigos'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'nao-e-email');
+    await tester.tap(find.text('Enviar convite'));
+    await tester.pump();
+    expect(find.text('Digite um e-mail válido.'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), ' amigo@email.com ');
+    await tester.tap(find.text('Enviar convite'));
+    await tester.pumpAndSettle();
+    expect(invites.single, contains('"email":"amigo@email.com"'));
+    expect(find.text('Convite enviado!'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('Aceitar Carlos Mendes'),
+      200,
+    );
+    await tester.tap(find.byTooltip('Aceitar Carlos Mendes'));
+    await tester.pumpAndSettle();
+    expect(responses.single, 'PUT /amizades/3/responder {"aceitar":true}');
+  });
+
   testWidgets('aba Perfil tem o sair da conta', (tester) async {
     final services = await pumpShell(tester, initialTab: 3);
 
@@ -173,4 +239,68 @@ List<Map<String, Object?>> achievementsJson() => [
       },
       {'nome': 'Focado', 'progresso': 3, 'meta': 30, 'obtida_em': null},
       {'nome': 'Mestre', 'progresso': 10, 'meta': 100, 'obtida_em': null},
+    ];
+
+Map<String, Object?> rankingJson() => {
+      'inicio_semana': '2026-11-16T03:00:00Z',
+      'fim_semana': '2026-11-23T02:59:59Z',
+      'total_participantes': 4,
+      'posicao_solicitante': 4,
+      'ranking': [
+        {
+          'posicao': 1,
+          'paciente_id': 1,
+          'nome': 'Maria S.',
+          'xp_semanal': 1250,
+          'streak': 12,
+          'e_voce': false,
+        },
+        {
+          'posicao': 2,
+          'paciente_id': 2,
+          'nome': 'João P.',
+          'xp_semanal': 980,
+          'streak': 8,
+          'e_voce': false,
+        },
+        {
+          'posicao': 3,
+          'paciente_id': 3,
+          'nome': 'Ana C.',
+          'xp_semanal': 850,
+          'streak': 5,
+          'e_voce': false,
+        },
+        {
+          'posicao': 4,
+          'paciente_id': 7,
+          'nome': 'Alex S.',
+          'xp_semanal': 520,
+          'streak': 3,
+          'e_voce': true,
+        },
+      ],
+    };
+
+List<Map<String, Object?>> friendshipsJson() => [
+      {
+        'id': 3,
+        'paciente_id': 5,
+        'nome': 'Carlos Mendes',
+        'streak': 1,
+        'xp': 410,
+        'status': 'pendente',
+        'sou_solicitante': false,
+        'criado_em': '2026-11-18T10:00:00Z',
+      },
+      {
+        'id': 4,
+        'paciente_id': 1,
+        'nome': 'Maria Souza',
+        'streak': 12,
+        'xp': 1250,
+        'status': 'aceito',
+        'sou_solicitante': true,
+        'criado_em': '2026-11-01T10:00:00Z',
+      },
     ];
