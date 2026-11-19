@@ -123,21 +123,26 @@ class _LinkCodeFieldState extends State<LinkCodeField> {
               left: 0,
               right: 0,
               height: _boxHeight,
+              // As caixas são só desenho: o leitor de tela lê o valor do campo.
+              // Sem o ExcludeSemantics, cada dígito criava nós novos e, na web,
+              // o campo perdia o foco no meio da digitação.
               child: IgnorePointer(
-                child: Row(
-                  children: [
-                    for (var i = 0; i < 6; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      Expanded(
-                        child: _Box(
-                          digit: i < text.length ? text[i] : null,
-                          active: _focus.hasFocus &&
-                              (i == text.length ||
-                                  (i == 5 && text.length == 6)),
+                child: ExcludeSemantics(
+                  child: Row(
+                    children: [
+                      for (var i = 0; i < 6; i++) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        Expanded(
+                          child: _Box(
+                            digit: i < text.length ? text[i] : null,
+                            active: _focus.hasFocus &&
+                                (i == text.length ||
+                                    (i == 5 && text.length == 6)),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
