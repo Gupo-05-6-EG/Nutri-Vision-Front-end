@@ -14,7 +14,8 @@ import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
 import 'edit_item_sheet.dart';
 
-/// Revisao do que a IA identificou na foto (RF02.1, RF02.3).
+/// Revisao do que a IA identificou na foto (RF02.1, RF02.3), e tambem o
+/// registro manual de uma refeicao (sem [photo], comecando vazia).
 ///
 /// Mostra a foto, a confianca de cada item e deixa o paciente corrigir as
 /// gramas, trocar um alimento por outro da TACO ou excluir itens antes de
@@ -26,8 +27,8 @@ class RecognitionReviewPage extends StatefulWidget {
   const RecognitionReviewPage({
     required this.repository,
     required this.patientId,
-    required this.photo,
     required this.items,
+    this.photo,
     this.consumedAt,
     this.foods,
     super.key,
@@ -36,8 +37,8 @@ class RecognitionReviewPage extends StatefulWidget {
   final RecognitionRepository repository;
   final int patientId;
 
-  /// Foto enviada para a IA.
-  final ImageProvider photo;
+  /// Foto enviada para a IA; nula no registro manual.
+  final ImageProvider? photo;
   final List<DetectedItem> items;
 
   /// Quando a refeicao foi consumida; padrao: agora.
@@ -146,6 +147,26 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     );
   }
 
+  /// Adiciona um alimento da TACO que a IA nao viu (ou monta a refeicao manual).
+  Future<void> _addItem() async {
+    final foods = widget.foods;
+    if (foods == null) return;
+    final portion = await Navigator.of(context).push<FoodPortion>(
+      MaterialPageRoute(builder: (_) => FoodSearchPage(repository: foods)),
+    );
+    if (portion == null || !mounted) return;
+    setState(
+      () => _items.add(
+        DetectedItem.manual(
+          name: portion.food.name,
+          tacoId: portion.food.id,
+          grams: portion.grams,
+        ),
+      ),
+    );
+    await _calculate();
+  }
+
   Future<void> _edit(int index) async {
     final edited = await showModalBottomSheet<DetectedItem>(
       context: context,
@@ -199,6 +220,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
         consumedAt: _consumedAt,
         type: _type,
         estimate: estimate,
+        origin: widget.photo == null ? MealOrigin.manual : MealOrigin.photo,
       );
       if (!mounted) return;
       // O "desfazer" de um item excluido nao vale mais fora desta tela.
@@ -217,12 +239,17 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
   Widget build(BuildContext context) {
     final needsReview = _items.where((i) => i.level == ConfidenceLevel.low);
     return Scaffold(
-      appBar: AppBar(title: const Text('Revisar refeição')),
+      appBar: AppBar(
+        title:
+            Text(widget.photo == null ? 'Nova refeição' : 'Revisar refeição'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _Photo(photo: widget.photo),
-          const SizedBox(height: 16),
+          if (widget.photo case final photo?) ...[
+            _Photo(photo: photo),
+            const SizedBox(height: 16),
+          ],
           MealTypeSelector(
             value: _type,
             onChanged: (type) => setState(() => _type = type),
@@ -252,10 +279,12 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
               ),
             ),
           if (_items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'Nenhum alimento na refeição.',
+                widget.photo == null
+                    ? 'Adicione os alimentos da refeição.'
+                    : 'Nenhum alimento na refeição.',
                 textAlign: TextAlign.center,
               ),
             ),
@@ -265,6 +294,19 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
               estimate: _itemEstimates.elementAtOrNull(index),
               onEdit: () => _edit(index),
               onRemove: () => _remove(index),
+            ),
+          if (widget.foods != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: OutlinedButton.icon(
+                onPressed: _status == _Status.saving ? null : _addItem,
+                icon: const Icon(Icons.add),
+                label: Text(
+                  widget.photo == null
+                      ? 'Adicionar alimento'
+                      : 'Adicionar item manual',
+                ),
+              ),
             ),
           if (_status == _Status.failure) ...[
             const SizedBox(height: 8),
@@ -392,8 +434,10 @@ class _ItemTile extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       _Badge(
-                        text: '${item.level.label} · $percent%',
-                        color: color,
+                        text: item.manual
+                            ? 'Manual'
+                            : '${item.level.label} · $percent%',
+                        color: item.manual ? theme.colorScheme.outline : color,
                       ),
                       Text(
                         item.isInTaco

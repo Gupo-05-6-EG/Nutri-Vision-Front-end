@@ -120,6 +120,7 @@ Future<_FakeApi> _pumpPage(
   _FakeApi? api,
   ValueChanged<Object?>? onPop,
   bool withFoodSearch = true,
+  bool withPhoto = true,
 }) async {
   // A foto ocupa a tela padrao de 800x600; a tela alta mostra todos os itens.
   tester.view.physicalSize = const Size(800, 1600);
@@ -143,7 +144,7 @@ Future<_FakeApi> _pumpPage(
                   builder: (context) => RecognitionReviewPage(
                     repository: repository,
                     patientId: 4,
-                    photo: _photo,
+                    photo: withPhoto ? _photo : null,
                     items: items,
                     consumedAt: DateTime.utc(2026, 10, 20, 15, 30),
                     foods: withFoodSearch ? FoodRepository(client) : null,
@@ -445,6 +446,7 @@ void main() {
         DateTime.utc(2026, 10, 20, 15, 30).toLocal(),
       );
       expect(meal['tipo'], suggested.apiValue);
+      expect(meal['origem'], 'foto');
       expect((meal['itens'] as List).first, {
         'nome_alimento': 'Arroz, tipo 1, cozido',
         'quantidade_g': 150,
@@ -467,5 +469,63 @@ void main() {
 
       expect(api.savedMeals.single['tipo'], 'jantar');
     });
+  });
+
+  group('registro manual', () {
+    testWidgets('comeca vazia, adiciona da TACO e registra como manual',
+        (tester) async {
+      Object? popped;
+      final api = await _pumpPage(
+        tester,
+        items: const [],
+        withPhoto: false,
+        onPop: (value) => popped = value,
+      );
+
+      expect(find.text('Nova refeição'), findsOneWidget);
+      expect(find.text('Adicione os alimentos da refeição.'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+
+      await tester.tap(find.text('Adicionar alimento'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'farofa');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Farofa de mandioca'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('portion-grams')), '50');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('portion-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Farofa de mandioca'), findsOneWidget);
+      expect(find.text('Manual'), findsOneWidget);
+      await tester.tap(_registerButton());
+      await tester.pumpAndSettle();
+
+      expect(popped, isTrue);
+      final meal = api.savedMeals.single;
+      expect(meal['origem'], 'manual');
+      expect(
+        (meal['itens'] as List).single['nome_alimento'],
+        'Farofa de mandioca',
+      );
+    });
+
+    testWidgets('na foto, o item que a IA nao viu entra como manual',
+        (tester) async {
+      await _pumpPage(tester, items: const [_arroz]);
+
+      expect(find.text('Adicionar item manual'), findsOneWidget);
+    });
+  });
+
+  test('DetectedItem.manual tem confianca cheia e marca de manual', () {
+    const item = DetectedItem.manual(name: 'Ovo', tacoId: 9, grams: 50);
+
+    expect(item.manual, isTrue);
+    expect(item.isInTaco, isTrue);
+    expect(item.level, ConfidenceLevel.high);
+    expect(item.copyWith(grams: 60).manual, isTrue);
   });
 }

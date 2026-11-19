@@ -80,6 +80,7 @@ class RecognitionRepository {
     required DateTime consumedAt,
     required MealType type,
     required NutritionEstimate estimate,
+    MealOrigin origin = MealOrigin.photo,
   }) async {
     final store = _localStore;
     LocalMealRecord? localRecord;
@@ -100,6 +101,7 @@ class RecognitionRepository {
         'paciente_id': patientId,
         'consumida_em': consumedAt.toUtc().toIso8601String(),
         'tipo': type.apiValue,
+        'origem': origin.apiValue,
         'itens': [for (final item in estimate.items) item.toMealItemJson()],
       });
       if (store != null && localRecord != null) {
@@ -124,4 +126,14 @@ String imageContentType(String filename) {
   if (name.endsWith('.webp')) return 'image/webp';
   if (name.endsWith('.heic') || name.endsWith('.heif')) return 'image/heic';
   return 'image/jpeg';
+}
+
+/// Como a refeicao foi registrada: por foto (+20 XP) ou montada a mao (+10 XP).
+enum MealOrigin {
+  photo('foto'),
+  manual('manual');
+
+  const MealOrigin(this.apiValue);
+
+  final String apiValue;
 }

@@ -13,6 +13,7 @@ import '../../plan/presentation/plan_progress_page.dart';
 import '../../privacy/presentation/privacy_settings_page.dart';
 import '../../profile/domain/patient_profile.dart';
 import '../../recognition/presentation/photo_analysis_page.dart';
+import '../../recognition/presentation/recognition_review_page.dart';
 import '../../reminders/presentation/meal_reminders_page.dart';
 import '../../screening/presentation/screening_page.dart';
 
@@ -68,6 +69,30 @@ class AppRoutes {
       PhotoAnalysisPage(
         repository: s.recognition,
         patientId: patientId,
+        foods: s.tacoFoods,
+      ),
+    );
+    if (saved == true) {
+      unawaited(s.profile.refresh());
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Refeição registrada.')),
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /// Refeição montada à mão, sem foto. Devolve `true` quando foi registrada.
+  static Future<bool> manualMeal(BuildContext context, AppServices s) async {
+    final patientId = s.patientId;
+    if (patientId == null) return false;
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = await _push<bool>(
+      context,
+      RecognitionReviewPage(
+        repository: s.recognition,
+        patientId: patientId,
+        items: const [],
         foods: s.tacoFoods,
       ),
     );

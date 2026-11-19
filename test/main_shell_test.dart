@@ -119,13 +119,25 @@ void main() {
 
     await tester.tap(find.widgetWithText(NavigationDestination, 'Registrar'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Registrar refeição por foto'));
+    await tester.tap(find.text('Foto do prato'));
     await tester.pumpAndSettle();
 
     final page =
         tester.widget<PhotoAnalysisPage>(find.byType(PhotoAnalysisPage));
     expect(page.patientId, 7);
     expect(page.foods, isNotNull);
+  });
+
+  testWidgets('aba Registrar tem foto, manual e historico', (tester) async {
+    await pumpShell(tester, initialTab: 1);
+
+    expect(find.text('Foto do prato'), findsOneWidget);
+    expect(find.text('+20 XP'), findsOneWidget);
+    await tester.tap(find.text('Adicionar manualmente'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nova refeição'), findsOneWidget);
+    expect(find.text('Adicionar alimento'), findsOneWidget);
   });
 
   testWidgets('aba Perfil tem o sair da conta', (tester) async {
