@@ -9,6 +9,7 @@ import '../../foods/domain/number_format.dart';
 import '../../foods/presentation/food_search_page.dart';
 import '../../meals/domain/meal_type.dart';
 import '../../meals/presentation/meal_type_selector.dart';
+import '../../../core/ui/nv_widgets.dart';
 import '../data/recognition_repository.dart';
 import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
@@ -183,6 +184,17 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     await _calculate();
   }
 
+  /// Passo dos botoes -/+ da porcao, em gramas.
+  static const gramsStep = 10.0;
+
+  void _adjust(int index, double delta) {
+    final current = _items[index].grams;
+    final next = (current + delta).clamp(gramsStep, 5000.0).toDouble();
+    if (next == current) return;
+    setState(() => _items[index] = _items[index].copyWith(grams: next));
+    _calculate();
+  }
+
   void _remove(int index) {
     final removed = _items[index];
     setState(() => _items.removeAt(index));
@@ -241,7 +253,7 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
     return Scaffold(
       appBar: AppBar(
         title:
-            Text(widget.photo == null ? 'Nova refeição' : 'Revisar refeição'),
+            Text(widget.photo == null ? 'Nova refeição' : 'O que temos aqui?'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -250,9 +262,17 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
             _Photo(photo: photo),
             const SizedBox(height: 16),
           ],
-          MealTypeSelector(
+          MealTypeChips(
             value: _type,
             onChanged: (type) => setState(() => _type = type),
+          ),
+          const SizedBox(height: 16),
+          Semantics(
+            header: true,
+            child: Text(
+              widget.photo == null ? 'Alimentos' : 'Itens identificados',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           ),
           const SizedBox(height: 16),
           if (needsReview.isNotEmpty)
@@ -294,6 +314,8 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
               estimate: _itemEstimates.elementAtOrNull(index),
               onEdit: () => _edit(index),
               onRemove: () => _remove(index),
+              onLess: () => _adjust(index, -gramsStep),
+              onMore: () => _adjust(index, gramsStep),
             ),
           if (widget.foods != null)
             Padding(
@@ -322,21 +344,26 @@ class _RecognitionReviewPageState extends State<RecognitionReviewPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Wrap(
-            spacing: 16,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Semantics(liveRegion: true, child: _buildTotal(context)),
-              FilledButton.icon(
+              Semantics(
+                liveRegion: true,
+                child: Center(child: _buildTotal(context)),
+              ),
+              const SizedBox(height: 10),
+              NvButton(
+                key: const Key('confirm-meal'),
+                label: 'Confirmar refeição',
+                icon: Icons.check_circle_outline,
+                style: NvButtonStyle.accent,
+                loading: _status == _Status.saving,
                 onPressed: _canSave ? _save : null,
-                icon: _status == _Status.saving
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: const Text('Registrar'),
+                trailing: XpBadge(
+                  xp: widget.photo == null ? 10 : 20,
+                  prefix: '+',
+                ),
               ),
             ],
           ),
@@ -402,12 +429,16 @@ class _ItemTile extends StatelessWidget {
     required this.estimate,
     required this.onEdit,
     required this.onRemove,
+    required this.onLess,
+    required this.onMore,
   });
 
   final DetectedItem item;
   final EstimatedItem? estimate;
   final VoidCallback onEdit;
   final VoidCallback onRemove;
+  final VoidCallback onLess;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -417,58 +448,138 @@ class _ItemTile extends StatelessWidget {
     final kcal =
         estimate == null ? '' : ' · ${formatNumber(estimate!.kcal)} kcal';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: NvCard(
+        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+        child: Column(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.displayName, style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHigh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.restaurant_rounded,
+                    color: theme.colorScheme.tertiary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Badge(
-                        text: item.manual
-                            ? 'Manual'
-                            : '${item.level.label} · $percent%',
-                        color: item.manual ? theme.colorScheme.outline : color,
-                      ),
-                      Text(
-                        item.isInTaco
-                            ? '${formatNumber(item.grams)} g$kcal'
-                            : 'Fora da TACO · ${formatNumber(item.grams)} g',
-                        style: item.isInTaco
-                            ? theme.textTheme.bodySmall
-                            : theme.textTheme.bodySmall
-                                ?.copyWith(color: theme.colorScheme.error),
+                      Text(item.displayName, style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _Badge(
+                            text: item.manual
+                                ? 'Manual'
+                                : '${item.level.label} · $percent%',
+                            color:
+                                item.manual ? theme.colorScheme.outline : color,
+                          ),
+                          Text(
+                            item.isInTaco
+                                ? '${formatNumber(item.grams)} g$kcal'
+                                : 'Fora da TACO · ${formatNumber(item.grams)} g',
+                            style: item.isInTaco
+                                ? theme.textTheme.bodySmall
+                                : theme.textTheme.bodySmall
+                                    ?.copyWith(color: theme.colorScheme.error),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
+                IconButton(
+                  tooltip: item.isInTaco
+                      ? 'Editar ${item.displayName}'
+                      : 'Trocar ${item.displayName}',
+                  icon: Icon(
+                    item.isInTaco ? Icons.edit_outlined : Icons.swap_horiz,
+                  ),
+                  onPressed: onEdit,
+                ),
+                IconButton(
+                  tooltip: 'Excluir ${item.displayName}',
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: theme.colorScheme.error,
+                  ),
+                  onPressed: onRemove,
+                ),
+              ],
+            ),
+            if (item.isInTaco)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, right: 8),
+                child: _GramsStepper(
+                  name: item.displayName,
+                  grams: item.grams,
+                  onLess: onLess,
+                  onMore: onMore,
+                ),
               ),
-            ),
-            IconButton(
-              tooltip: item.isInTaco
-                  ? 'Editar ${item.displayName}'
-                  : 'Trocar ${item.displayName}',
-              icon: Icon(
-                item.isInTaco ? Icons.edit_outlined : Icons.swap_horiz,
-              ),
-              onPressed: onEdit,
-            ),
-            IconButton(
-              tooltip: 'Excluir ${item.displayName}',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: onRemove,
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Botoes -/+ da porcao (passo de 10 g), como no prototipo.
+class _GramsStepper extends StatelessWidget {
+  const _GramsStepper({
+    required this.name,
+    required this.grams,
+    required this.onLess,
+    required this.onMore,
+  });
+
+  final String name;
+  final double grams;
+  final VoidCallback onLess;
+  final VoidCallback onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Diminuir 10 g de $name',
+            onPressed: grams <= 10 ? null : onLess,
+            icon: const Icon(Icons.remove),
+          ),
+          Expanded(
+            child: Text(
+              '${formatNumber(grams)}g',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Aumentar 10 g de $name',
+            onPressed: onMore,
+            icon: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }

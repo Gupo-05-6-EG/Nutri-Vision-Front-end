@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
+import 'package:nutri_vision/core/ui/nv_widgets.dart';
 import 'package:nutri_vision/features/foods/data/food_repository.dart';
 import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/recognition/data/recognition_repository.dart';
@@ -179,7 +180,7 @@ Future<void> _replaceWithFarofa(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder _registerButton() => find.widgetWithText(FilledButton, 'Registrar');
+Finder _registerButton() => find.byKey(const Key('confirm-meal'));
 
 void main() {
   group('DetectedItem', () {
@@ -331,7 +332,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Total: 150 kcal'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
 
       // A folha so oferece trocar (nao ha gramas para editar)
       await tester.tap(find.byTooltip('Trocar farofa'));
@@ -346,7 +347,7 @@ void main() {
       expect(find.text('Fora da TACO · 30 g'), findsNothing);
       expect(find.text('Total: 200 kcal'), findsOneWidget);
       expect(
-        tester.widget<FilledButton>(_registerButton()).onPressed,
+        tester.widget<NvButton>(_registerButton()).onPressed,
         isNotNull,
       );
     });
@@ -372,7 +373,7 @@ void main() {
 
       expect(api.calculations, isEmpty);
       expect(find.text('Total: 0 kcal'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
     });
 
     testWidgets('excluir remove o item e desfazer devolve', (tester) async {
@@ -399,7 +400,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Nenhum alimento na refeição.'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
     });
 
     testWidgets('registrar fecha o aviso de desfazer de um item excluido', (
@@ -457,12 +458,38 @@ void main() {
       });
     });
 
+    testWidgets('botoes -/+ mudam 10 g e recalculam', (tester) async {
+      final api = await _pumpPage(tester, items: const [_arroz]);
+      final before = api.calculations.length;
+
+      await tester
+          .tap(find.byTooltip('Aumentar 10 g de Arroz, tipo 1, cozido'));
+      await tester.pumpAndSettle();
+      expect(find.text('160g'), findsOneWidget);
+      expect(find.text('Total: 160 kcal'), findsOneWidget);
+
+      await tester
+          .tap(find.byTooltip('Diminuir 10 g de Arroz, tipo 1, cozido'));
+      await tester
+          .tap(find.byTooltip('Diminuir 10 g de Arroz, tipo 1, cozido'));
+      await tester.pumpAndSettle();
+      expect(find.text('140g'), findsOneWidget);
+      expect(api.calculations.length, greaterThan(before));
+      expect((api.calculations.last.single as Map)['gramas'], 140);
+    });
+
+    testWidgets('confirmar mostra o XP da foto', (tester) async {
+      await _pumpPage(tester, items: const [_arroz]);
+
+      expect(find.text('Confirmar refeição'), findsOneWidget);
+      expect(find.text('+20 XP'), findsOneWidget);
+      expect(find.text('Itens identificados'), findsOneWidget);
+    });
+
     testWidgets('registra com o tipo escolhido no seletor', (tester) async {
       final api = await _pumpPage(tester);
 
-      await tester.tap(find.byType(DropdownButtonFormField<MealType>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jantar').last);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Jantar'));
       await tester.pumpAndSettle();
       await tester.tap(_registerButton());
       await tester.pumpAndSettle();

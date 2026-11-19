@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
+import 'package:nutri_vision/core/ui/nv_widgets.dart';
 import 'package:nutri_vision/features/foods/data/food_repository.dart';
 import 'package:nutri_vision/features/meals/data/meal_repository.dart';
 import 'package:nutri_vision/features/meals/presentation/meal_history_page.dart';
@@ -339,7 +340,7 @@ Future<void> _editGrams(WidgetTester tester, String name, String grams) async {
 }
 
 Future<void> _register(WidgetTester tester) async {
-  await tester.tap(find.widgetWithText(FilledButton, 'Registrar'));
+  await tester.tap(find.byKey(const Key('confirm-meal')));
   await tester.pumpAndSettle();
 }
 
@@ -361,7 +362,7 @@ void main() {
       expect(body, contains('content-type: image/jpeg'));
 
       // Revisao: o que a IA achou, com os valores da TACO
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
       expect(find.text('Alta · 93%'), findsOneWidget);
       expect(find.text('Baixa · 41%'), findsOneWidget);
       expect(find.textContaining('não tem certeza de 1 item'), findsOneWidget);
@@ -412,7 +413,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(camera.sources, [PhotoSource.gallery]);
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
     });
 
     testWidgets('item excluido na revisao nao e registrado', (tester) async {
@@ -454,8 +455,8 @@ void main() {
       await _takePhoto(tester);
 
       expect(find.text('Fora da TACO · 90 g'), findsOneWidget);
-      final register = find.widgetWithText(FilledButton, 'Registrar');
-      expect(tester.widget<FilledButton>(register).onPressed, isNull);
+      final register = find.byKey(const Key('confirm-meal'));
+      expect(tester.widget<NvButton>(register).onPressed, isNull);
 
       // Troca pela batata cozida da TACO, com 100 g
       await tester.tap(find.byTooltip('Trocar batata'));
@@ -515,7 +516,7 @@ void main() {
       api.uploadResponse = _analysis('QUEUED');
       await _takePhoto(tester);
       expect(camera.sources, hasLength(2));
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
     });
 
     testWidgets('nada encontrado na foto', (tester) async {
@@ -558,7 +559,7 @@ void main() {
       await tester.tap(find.text('Revisar os alimentos mesmo assim'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
       expect(find.text('Feijão, carioca, cozido'), findsOneWidget);
 
       // Voltar da revisao sem registrar permite tirar outra foto
@@ -604,7 +605,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(camera.sources, hasLength(1));
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
     });
 
     testWidgets('sem conexao avisa', (tester) async {
@@ -628,6 +629,30 @@ void main() {
         find.textContaining('A análise está demorando mais que o normal'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('continuar esperando consulta o mesmo id sem reenviar a foto', (
+      tester,
+    ) async {
+      final api = _Backend()..analyses = [_analysis('QUEUED')];
+      await _pumpApp(tester, backend: api, analysisTimeout: Duration.zero);
+      await _takePhoto(tester);
+      final uploads = api.requests
+          .where((r) => r.startsWith('POST') && r.endsWith('/analises'))
+          .length;
+
+      // A IA termina enquanto o paciente decide esperar mais.
+      api.analyses = [_analysis('DONE', items: _pratoItens)];
+      await tester.tap(find.text('Continuar esperando'));
+      await tester.pumpAndSettle();
+
+      expect(
+        api.requests
+            .where((r) => r.startsWith('POST') && r.endsWith('/analises'))
+            .length,
+        uploads,
+      );
+      expect(find.text('O que temos aqui?'), findsOneWidget);
     });
 
     testWidgets('camera indisponivel avisa', (tester) async {
@@ -664,7 +689,7 @@ void main() {
       );
       await _takePhoto(tester);
 
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
       expect(
         find.text('Sem conexão com a API. Verifique sua internet.'),
         findsOneWidget,
@@ -690,7 +715,7 @@ void main() {
         find.text('Não foi possível registrar a refeição.'),
         findsOneWidget,
       );
-      expect(find.text('Revisar refeição'), findsOneWidget);
+      expect(find.text('O que temos aqui?'), findsOneWidget);
       expect(api.meals, isEmpty);
 
       // Na segunda tentativa a API responde e o fluxo segue
@@ -714,8 +739,8 @@ void main() {
       }
 
       expect(find.text('Calculando...'), findsOneWidget);
-      final register = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Registrar'),
+      final register = tester.widget<NvButton>(
+        find.byKey(const Key('confirm-meal')),
       );
       expect(register.onPressed, isNull);
 
