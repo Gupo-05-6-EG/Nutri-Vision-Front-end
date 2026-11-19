@@ -14,7 +14,15 @@ import 'package:nutri_vision/features/auth/presentation/link_code_page.dart';
 import 'package:nutri_vision/features/auth/presentation/linked_signup_page.dart';
 import 'package:nutri_vision/features/auth/presentation/login_page.dart';
 import 'package:nutri_vision/features/auth/presentation/welcome_page.dart';
-import 'package:nutri_vision/features/home/presentation/home_placeholder_page.dart';
+import 'package:nutri_vision/app_services.dart';
+import 'package:nutri_vision/features/achievements/data/achievement_repository.dart';
+import 'package:nutri_vision/features/challenges/data/challenge_repository.dart';
+import 'package:nutri_vision/features/meals/data/meal_repository.dart';
+import 'package:nutri_vision/features/privacy/data/privacy_repository.dart';
+import 'package:nutri_vision/features/profile/application/profile_controller.dart';
+import 'package:nutri_vision/features/profile/data/profile_repository.dart';
+import 'package:nutri_vision/features/recognition/data/recognition_repository.dart';
+import 'package:nutri_vision/features/shell/presentation/main_shell.dart';
 import 'package:nutri_vision/features/plan/data/plan_repository.dart';
 import 'package:nutri_vision/features/reminders/application/push_service.dart';
 import 'package:nutri_vision/features/reminders/data/reminder_repository.dart';
@@ -65,6 +73,24 @@ class _Harness {
   late final ApiClient client;
   late final AuthController auth;
 
+  AppServices services(ScreeningRepository screening) => AppServices(
+        client: client,
+        auth: auth,
+        profile: ProfileController(
+          auth: auth,
+          repository: ProfileRepository(client),
+        ),
+        screening: screening,
+        plans: PlanRepository(client),
+        reminders: ReminderRepository(client),
+        push: const DisabledPushService(),
+        meals: MealRepository(client),
+        recognition: RecognitionRepository(client),
+        challenges: ChallengeRepository(client),
+        achievements: AchievementRepository(client),
+        privacy: PrivacyRepository(client),
+      );
+
   /// Mesma troca de raiz do `NutriVisionApp`, sem o `.env` e o storage seguro.
   Future<void> pump(WidgetTester tester) async {
     tester.view.physicalSize = const Size(900, 2000);
@@ -77,13 +103,8 @@ class _Harness {
         home: ListenableBuilder(
           listenable: auth,
           builder: (context, _) => switch (auth.status) {
-            AuthStatus.authenticated => HomePlaceholderPage(
-                auth: auth,
-                screening: screening,
-                plans: PlanRepository(client),
-                reminders: ReminderRepository(client),
-                push: const DisabledPushService(),
-              ),
+            AuthStatus.authenticated =>
+              MainShell(services: services(screening)),
             _ => WelcomePage(auth: auth, screening: screening),
           },
         ),
@@ -173,7 +194,8 @@ void main() {
       await tester.enterText(_field('Senha'), 'senha-forte-123');
       await _tap(tester, find.widgetWithText(FilledButton, 'Entrar'));
 
-      final request = h.requests.single;
+      // Depois do login o app tambem busca o perfil (meta e XP do topo).
+      final request = h.requests.first;
       expect(request.url.path, AuthRepository.loginPath);
       expect(jsonDecode(request.body), {
         'email': 'alex@email.com',
@@ -182,8 +204,8 @@ void main() {
       expect(h.auth.status, AuthStatus.authenticated);
       expect(h.storage.value, 'token-do-paciente');
       expect(find.byType(LoginPage), findsNothing);
-      expect(find.byType(HomePlaceholderPage), findsOneWidget);
-      expect(find.text('Calcular minha meta diária'), findsOneWidget);
+      expect(find.byType(MainShell), findsOneWidget);
+      expect(find.text('Início'), findsWidgets);
     });
 
     testWidgets('senha errada mostra a mensagem e continua no login',
@@ -250,7 +272,7 @@ void main() {
 
       resposta.complete(http.Response(_tokenOut, 200));
       await tester.pumpAndSettle();
-      expect(find.byType(HomePlaceholderPage), findsOneWidget);
+      expect(find.byType(MainShell), findsOneWidget);
     });
 
     testWidgets('botao do olho mostra e esconde a senha', (tester) async {
@@ -274,7 +296,7 @@ void main() {
       expect(obscured(), isTrue);
     });
 
-    testWidgets('logout na home volta para as boas-vindas', (tester) async {
+    testWidgets('logout no perfil volta para as boas-vindas', (tester) async {
       final h = _Harness((_) async => http.Response(_tokenOut, 200));
       await h.pump(tester);
       await _openLogin(tester);
@@ -282,7 +304,8 @@ void main() {
       await tester.enterText(_field('Senha'), '12345678');
       await _tap(tester, find.widgetWithText(FilledButton, 'Entrar'));
 
-      await _tap(tester, find.byTooltip('Sair da conta'));
+      await _tap(tester, find.widgetWithText(NavigationDestination, 'Perfil'));
+      await _tap(tester, find.text('Sair da conta'));
 
       expect(find.byType(WelcomePage), findsOneWidget);
       expect(h.storage.value, isNull);

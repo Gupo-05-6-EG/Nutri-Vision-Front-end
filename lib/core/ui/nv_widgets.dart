@@ -517,20 +517,24 @@ class NvBrand extends StatelessWidget {
       header: true,
       label: 'Nutri Vision',
       excludeSemantics: true,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.eco_rounded, color: scheme.primary, size: 26),
-          const SizedBox(width: 6),
-          Text(
-            'Nutri Vision',
-            style: TextStyle(
-              color: scheme.primary,
-              fontWeight: FontWeight.w900,
-              fontSize: 22,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.eco_rounded, color: scheme.primary, size: 26),
+            const SizedBox(width: 6),
+            Text(
+              'Nutri Vision',
+              style: TextStyle(
+                color: scheme.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
