@@ -18,6 +18,15 @@ import 'package:nutri_vision/features/reminders/application/push_service.dart';
 import 'package:nutri_vision/features/reminders/data/reminder_repository.dart';
 import 'package:nutri_vision/features/screening/data/screening_repository.dart';
 import 'package:nutri_vision/features/shell/presentation/main_shell.dart';
+import 'package:nutri_vision/features/achievements/presentation/achievements_page.dart';
+import 'package:nutri_vision/features/challenges/presentation/challenges_page.dart';
+import 'package:nutri_vision/features/foods/presentation/food_search_page.dart';
+import 'package:nutri_vision/features/linking/presentation/linking_page.dart';
+import 'package:nutri_vision/features/meals/presentation/meal_history_page.dart';
+import 'package:nutri_vision/features/plan/presentation/plan_progress_page.dart';
+import 'package:nutri_vision/features/privacy/presentation/privacy_settings_page.dart';
+import 'package:nutri_vision/features/reminders/presentation/meal_reminders_page.dart';
+import 'package:nutri_vision/features/screening/presentation/screening_page.dart';
 
 import 'support/session.dart';
 
@@ -267,6 +276,29 @@ void main() {
       findsOneWidget,
     );
   });
+
+  for (final (tab, label, page) in [
+    (3, 'Lembretes de Refeição', MealRemindersPage),
+    (3, 'Meus Alimentos', FoodSearchPage),
+    (3, 'Privacidade e Dados (LGPD)', PrivacySettingsPage),
+    (3, 'Meta Diária de Calorias', ScreeningPage),
+    (3, 'Vincular nutricionista', LinkingPage),
+    (2, 'Desafios entre amigos', ChallengesPage),
+    (2, 'Minhas conquistas', AchievementsPage),
+    (1, 'Histórico de refeições', MealHistoryPage),
+    (0, 'Meu progresso', PlanProgressPage),
+  ]) {
+    testWidgets('$label abre a tela certa', (tester) async {
+      await pumpShell(tester, initialTab: tab);
+
+      await tester.scrollUntilVisible(find.text(label), 200);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(page), findsOneWidget);
+    });
+  }
 
   testWidgets('aba Perfil tem o sair da conta', (tester) async {
     final services = await pumpShell(tester, initialTab: 3);

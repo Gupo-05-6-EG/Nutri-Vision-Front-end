@@ -40,6 +40,17 @@ void main() {
     expect(AppTheme.dark.extension<NvColors>(), NvColors.dark);
   });
 
+  test('NvColors interpola e copia', () {
+    final mid = NvColors.light.lerp(NvColors.dark, 0.5);
+    expect(mid.protein, isNot(NvColors.light.protein));
+    expect(NvColors.light.lerp(null, 0.5), NvColors.light);
+    expect(
+      NvColors.light.copyWith(xp: const Color(0xFF000000)).xp,
+      const Color(0xFF000000),
+    );
+    expect(NvColors.light.copyWith().carbs, NvColors.light.carbs);
+  });
+
   testWidgets('NvButton chama o callback e anuncia o rotulo', (tester) async {
     var taps = 0;
     await tester.pumpWidget(

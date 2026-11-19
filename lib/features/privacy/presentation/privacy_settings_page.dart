@@ -2,24 +2,42 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/ui/nv_widgets.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/auth_error_message.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../data/privacy_repository.dart';
 
+/// Entrega o JSON exportado ao paciente (compartilhar ou baixar).
+typedef SaveExport = Future<void> Function(Uint8List bytes, String filename);
+
+/// Compartilhamento do sistema (no navegador, a folha de compartilhar ou o
+/// download, conforme o que o navegador oferece).
+Future<void> shareExport(Uint8List bytes, String filename) async {
+  await SharePlus.instance.share(
+    ShareParams(
+      title: 'Exportação de dados Nutri Vision',
+      files: [
+        XFile.fromData(bytes, mimeType: 'application/json', name: filename),
+      ],
+    ),
+  );
+}
+
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({
     required this.auth,
     required this.repository,
+    this.saveExport = shareExport,
     super.key,
   });
 
   final AuthController auth;
   final PrivacyRepository repository;
+  final SaveExport saveExport;
 
   @override
   State<PrivacySettingsPage> createState() => _PrivacySettingsPageState();
@@ -116,18 +134,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     try {
       final data = await widget.repository.exportData();
       final contents = const JsonEncoder.withIndent('  ').convert(data);
-      await SharePlus.instance.share(
-        ShareParams(
-          title: 'Exportação de dados Nutri Vision',
-          files: [
-            XFile.fromData(
-              Uint8List.fromList(utf8.encode(contents)),
-              mimeType: 'application/json',
-              name: 'nutri-vision-dados.json',
-            ),
-          ],
-        ),
+      await widget.saveExport(
+        Uint8List.fromList(utf8.encode(contents)),
+        'nutri-vision-dados.json',
       );
+      if (mounted) _showMessage('Seus dados foram exportados.');
     } catch (error) {
       if (mounted) setState(() => _error = authErrorMessage(error));
     } finally {
