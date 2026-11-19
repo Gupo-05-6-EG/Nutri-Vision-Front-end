@@ -2,10 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../foods/data/food_repository.dart';
+import '../data/camera_engine.dart';
 import '../data/photo_picker.dart';
 import '../data/recognition_repository.dart';
 import '../domain/detected_item.dart';
+import 'camera_capture_page.dart';
 import 'recognition_review_page.dart';
+
+/// Abre a camera do app; `null` quando o paciente desiste.
+typedef OpenCamera = Future<PickedPhoto?> Function(
+  BuildContext context,
+  PickPhoto pickPhoto,
+);
+
+/// Camera propria (AP-07). A galeria e a camera do sistema ficam como saida.
+Future<PickedPhoto?> openCameraCapture(
+  BuildContext context,
+  PickPhoto pickPhoto,
+) {
+  return Navigator.of(context).push<PickedPhoto>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => CameraCapturePage(
+        createEngine: DeviceCameraEngine.new,
+        pickFromGallery: pickPhoto,
+        pickWithSystemCamera: pickPhoto,
+      ),
+    ),
+  );
+}
 
 /// Registro de refeicao por foto (RF02.1): o paciente tira (ou escolhe) a foto
 /// do prato, a IA identifica os alimentos e a revisao abre com o resultado.
@@ -17,6 +42,7 @@ class PhotoAnalysisPage extends StatefulWidget {
     required this.patientId,
     this.foods,
     this.pickPhoto = pickPhotoWithImagePicker,
+    this.openCamera = openCameraCapture,
     this.consumedAt,
     super.key,
   });
@@ -27,6 +53,9 @@ class PhotoAnalysisPage extends StatefulWidget {
   /// Busca so na TACO, usada na revisao para trocar um alimento.
   final FoodRepository? foods;
   final PickPhoto pickPhoto;
+
+  /// "Tirar foto" abre a camera do app (testes trocam por uma falsa).
+  final OpenCamera openCamera;
 
   /// Quando a refeicao foi consumida; padrao: agora (ao abrir a revisao).
   final DateTime? consumedAt;
@@ -53,7 +82,9 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
   Future<void> _pick(PhotoSource source) async {
     final PickedPhoto? photo;
     try {
-      photo = await widget.pickPhoto(source);
+      photo = source == PhotoSource.camera
+          ? await widget.openCamera(context, widget.pickPhoto)
+          : await widget.pickPhoto(source);
     } catch (_) {
       if (!mounted) return;
       _showProblem(
@@ -79,6 +110,7 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
       final analysis = await widget.repository.analyzePhoto(
         photo.bytes,
         filename: photo.filename,
+        plateType: photo.plateType,
         onProgress: (status) {
           if (mounted) setState(() => _progress = status);
         },

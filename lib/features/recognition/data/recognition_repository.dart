@@ -7,6 +7,7 @@ import '../../meals/domain/local_meal_record.dart';
 import '../../meals/domain/meal_type.dart';
 import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
+import 'photo_picker.dart';
 
 /// A analise demorou mais que o limite de espera.
 class AnalysisTimeout implements Exception {
@@ -40,6 +41,7 @@ class RecognitionRepository {
   Future<PhotoAnalysis> analyzePhoto(
     Uint8List bytes, {
     required String filename,
+    PlateType? plateType,
     void Function(AnalysisStatus status)? onProgress,
   }) async {
     final created = await _client.postFile(
@@ -48,6 +50,7 @@ class RecognitionRepository {
       bytes: bytes,
       filename: filename,
       contentType: imageContentType(filename),
+      fields: {if (plateType != null) 'tipo_prato': plateType.apiValue},
     );
     var analysis = PhotoAnalysis.fromJson(created as Map<String, dynamic>);
     final deadline = DateTime.now().add(analysisTimeout);

@@ -56,17 +56,19 @@ class ApiClient {
       _send(() => _http.delete(_uri(path), headers: _headers()));
 
   /// Envia um arquivo em `multipart/form-data` no campo [field] (ex.: a foto
-  /// da refeicao em `POST /analises`).
+  /// da refeicao em `POST /analises`), com campos de texto opcionais.
   Future<dynamic> postFile(
     String path, {
     required String field,
     required Uint8List bytes,
     required String filename,
     required String contentType,
+    Map<String, String> fields = const {},
   }) =>
       _send(() async {
         final request = http.MultipartRequest('POST', _uri(path))
           ..headers.addAll(_headers())
+          ..fields.addAll(fields)
           ..files.add(
             http.MultipartFile.fromBytes(
               field,

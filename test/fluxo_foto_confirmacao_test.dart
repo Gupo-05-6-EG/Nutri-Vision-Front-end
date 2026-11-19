@@ -295,6 +295,7 @@ Future<_Backend> _pumpApp(
                     patientId: 7,
                     foods: FoodRepository(client),
                     pickPhoto: cam.pick,
+                    openCamera: (_, pick) => pick(PhotoSource.camera),
                     consumedAt: _consumedAt,
                   ),
                 ),
