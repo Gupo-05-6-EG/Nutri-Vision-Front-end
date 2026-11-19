@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+
+import '../../../core/ui/nv_widgets.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../auth/application/auth_controller.dart';
@@ -193,49 +195,47 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         if (_loading)
           const Center(child: CircularProgressIndicator())
         else if (status != null) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        status.isActive
-                            ? Icons.check_circle_outline
-                            : Icons.info_outline,
-                        color: status.isActive ? colors.primary : colors.error,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          status.isActive
-                              ? 'Consentimento ativo'
-                              : 'Sem consentimento ativo',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (status.consents.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Histórico',
-                      style: Theme.of(context).textTheme.titleSmall,
+          NvCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      status.isActive
+                          ? Icons.check_circle_outline
+                          : Icons.info_outline,
+                      color: status.isActive ? colors.primary : colors.error,
                     ),
-                    for (final consent in status.consents)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('Aviso de privacidade ${consent.version}'),
-                        subtitle: Text(
-                          'Aceito em ${_formatDate(consent.acceptedAt)}'
-                          '${consent.revokedAt == null ? '' : '\nRevogado em ${_formatDate(consent.revokedAt!)}'}',
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        status.isActive
+                            ? 'Consentimento ativo'
+                            : 'Sem consentimento ativo',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                    ),
                   ],
+                ),
+                if (status.consents.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Histórico',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  for (final consent in status.consents)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Aviso de privacidade ${consent.version}'),
+                      subtitle: Text(
+                        'Aceito em ${_formatDate(consent.acceptedAt)}'
+                        '${consent.revokedAt == null ? '' : '\nRevogado em ${_formatDate(consent.revokedAt!)}'}',
+                      ),
+                    ),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 12),

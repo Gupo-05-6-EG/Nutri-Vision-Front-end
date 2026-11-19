@@ -79,6 +79,7 @@ Future<void> _pump(
   WidgetTester tester,
   MockClient httpClient, {
   double? fallbackGoalKcal,
+  ({double? protein, double? carbs, double? fat})? fallbackMacros,
 }) async {
   tester.view.physicalSize = const Size(900, 2400);
   tester.view.devicePixelRatio = 1;
@@ -92,6 +93,7 @@ Future<void> _pump(
         ),
         patientId: 7,
         fallbackGoalKcal: fallbackGoalKcal,
+        fallbackMacros: fallbackMacros,
         today: _today,
       ),
     ),
@@ -146,6 +148,19 @@ void main() {
     expect(find.text('Plano prescrito'), findsNothing);
     // Sem plano nao ha meta de proteina.
     expect(find.text('40 g'), findsOneWidget);
+  });
+
+  testWidgets('sem plano, as macros usam as metas da triagem', (tester) async {
+    await _pump(
+      tester,
+      _api(hasPlan: false),
+      fallbackGoalKcal: 2000,
+      fallbackMacros: (protein: 100, carbs: 250, fat: 66.7),
+    );
+
+    expect(find.text('40 / 100 g'), findsOneWidget);
+    expect(find.text('60 / 250 g'), findsOneWidget);
+    expect(find.text('15 / 66,7 g'), findsOneWidget);
   });
 
   testWidgets('sem plano e sem teto mostra o consumo e orienta a calcular',

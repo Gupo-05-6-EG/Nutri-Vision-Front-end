@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/auth_error_message.dart';
 import '../../meals/domain/meal_type.dart';
@@ -266,33 +268,31 @@ class _ReminderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final type = reminder.type;
     final time = reminder.formattedTime;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: ListTile(
-          leading: Icon(_icon(type)),
-          title: Text(type.label),
-          subtitle: Text(reminder.enabled ? 'Lembrete às $time' : 'Desligado'),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextButton(
-                key: ValueKey('reminder-time-${type.apiValue}'),
-                onPressed: enabled ? onPickTime : null,
-                child: Text(
-                  time,
-                  semanticsLabel:
-                      'Horário do ${type.label.toLowerCase()}: $time. Alterar',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+    return NvCard(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: ListTile(
+        leading: Icon(_icon(type)),
+        title: Text(type.label),
+        subtitle: Text(reminder.enabled ? 'Lembrete às $time' : 'Desligado'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              key: ValueKey('reminder-time-${type.apiValue}'),
+              onPressed: enabled ? onPickTime : null,
+              child: Text(
+                time,
+                semanticsLabel:
+                    'Horário do ${type.label.toLowerCase()}: $time. Alterar',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              Switch(
-                key: ValueKey('reminder-switch-${type.apiValue}'),
-                value: reminder.enabled,
-                onChanged: enabled ? onToggle : null,
-              ),
-            ],
-          ),
+            ),
+            Switch(
+              key: ValueKey('reminder-switch-${type.apiValue}'),
+              value: reminder.enabled,
+              onChanged: enabled ? onToggle : null,
+            ),
+          ],
         ),
       ),
     );

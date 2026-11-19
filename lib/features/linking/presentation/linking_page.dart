@@ -222,42 +222,40 @@ class _NutritionistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: colors.primaryContainer,
-              foregroundImage: nutritionist.photoUrl == null
-                  ? null
-                  : NetworkImage(nutritionist.photoUrl!),
-              child: nutritionist.photoUrl == null
-                  ? Icon(Icons.person, color: colors.primary, size: 30)
-                  : null,
+    return NvCard(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: colors.primaryContainer,
+            foregroundImage: nutritionist.photoUrl == null
+                ? null
+                : NetworkImage(nutritionist.photoUrl!),
+            child: nutritionist.photoUrl == null
+                ? Icon(Icons.person, color: colors.primary, size: 30)
+                : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Voc\u{00ea} vai se conectar com',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  nutritionist.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Voc\u{00ea} vai se conectar com',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    nutritionist.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -35,6 +35,11 @@ class AppRoutes {
         patientId: patientId,
         fallbackGoalKcal:
             goal.source == GoalSource.screening ? goal.kcal : null,
+        fallbackMacros: (
+          protein: goal.proteinG,
+          carbs: goal.carbsG,
+          fat: goal.fatG,
+        ),
       ),
     );
   }

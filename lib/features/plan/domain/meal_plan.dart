@@ -4,6 +4,8 @@ library;
 
 double _number(Object? value) => (value as num).toDouble();
 
+double? _optional(Object? value) => value is num ? value.toDouble() : null;
+
 /// Um alimento previsto em uma refeicao do plano.
 class PlanFood {
   const PlanFood({required this.name, required this.grams});
@@ -61,6 +63,8 @@ class MealPlan {
     required this.goalProtein,
     required this.meals,
     this.note,
+    this.goalCarbs,
+    this.goalFat,
   });
 
   factory MealPlan.fromJson(Map<String, dynamic> json) {
@@ -72,12 +76,18 @@ class MealPlan {
       note: json['observacao'] as String?,
       goalKcal: _number(totals['meta_kcal']),
       goalProtein: _number(totals['meta_proteinas_g']),
+      // Metas de carboidrato e gordura entraram depois (BE-12): planos antigos
+      // nao tem.
+      goalCarbs: _optional(totals['meta_carboidratos_g']),
+      goalFat: _optional(totals['meta_gorduras_g']),
       meals: meals.map(PlanMeal.fromJson).toList(),
     );
   }
 
   final String title;
   final String? note;
+  final double? goalCarbs;
+  final double? goalFat;
 
   /// Meta de calorias do dia.
   final double goalKcal;

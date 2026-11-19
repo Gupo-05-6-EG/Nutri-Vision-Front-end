@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../../core/ui/nv_colors.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -19,6 +21,7 @@ class PlanProgressPage extends StatefulWidget {
     required this.repository,
     required this.patientId,
     this.fallbackGoalKcal,
+    this.fallbackMacros,
     this.today,
     super.key,
   });
@@ -28,6 +31,10 @@ class PlanProgressPage extends StatefulWidget {
 
   /// Teto calorico da triagem (Task 1.3), usado quando nao ha plano ativo.
   final double? fallbackGoalKcal;
+
+  /// Metas de macros da triagem (proteina, carboidrato, gordura), usadas sem
+  /// plano ou quando o plano nao define a meta.
+  final ({double? protein, double? carbs, double? fat})? fallbackMacros;
 
   /// Dia atual; existe para os testes nao dependerem do relogio.
   final DateTime? today;
@@ -129,7 +136,15 @@ class _PlanProgressPageState extends State<PlanProgressPage> {
           subtitle: isWeek ? 'De segunda-feira até hoje' : null,
           totals: totals,
           goalKcal: dailyKcal == null ? null : dailyKcal * days,
-          goalProtein: plan == null ? null : plan.goalProtein * days,
+          goalProtein: _times(
+            plan?.goalProtein ?? widget.fallbackMacros?.protein,
+            days,
+          ),
+          goalCarbs: _times(
+            plan?.goalCarbs ?? widget.fallbackMacros?.carbs,
+            days,
+          ),
+          goalFat: _times(plan?.goalFat ?? widget.fallbackMacros?.fat, days),
         ),
         const SizedBox(height: 8),
         _GoalSource(plan: plan, hasCeiling: widget.fallbackGoalKcal != null),
@@ -142,6 +157,8 @@ class _PlanProgressPageState extends State<PlanProgressPage> {
   }
 }
 
+double? _times(double? value, int days) => value == null ? null : value * days;
+
 /// Calorias e macros do periodo contra as metas, em barras de progresso.
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
@@ -149,6 +166,8 @@ class _ProgressCard extends StatelessWidget {
     required this.totals,
     required this.goalKcal,
     required this.goalProtein,
+    this.goalCarbs,
+    this.goalFat,
     this.subtitle,
   });
 
@@ -157,6 +176,8 @@ class _ProgressCard extends StatelessWidget {
   final NutritionTotals totals;
   final double? goalKcal;
   final double? goalProtein;
+  final double? goalCarbs;
+  final double? goalFat;
 
   @override
   Widget build(BuildContext context) {
@@ -164,50 +185,48 @@ class _ProgressCard extends StatelessWidget {
     final nv = NvColors.of(context);
     final goal = goalKcal;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: theme.textTheme.titleMedium),
-            if (subtitle != null)
-              Text(subtitle!, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 12),
-            _GoalBar(
-              label: 'Calorias',
-              consumed: totals.kcal,
-              goal: goal,
-              unit: 'kcal',
-              color: theme.colorScheme.primary,
-              large: true,
-            ),
-            const SizedBox(height: 16),
-            _GoalBar(
-              label: 'Proteína',
-              consumed: totals.protein,
-              goal: goalProtein,
-              unit: 'g',
-              color: nv.protein,
-            ),
-            const SizedBox(height: 12),
-            _GoalBar(
-              label: 'Carboidratos',
-              consumed: totals.carbs,
-              goal: null,
-              unit: 'g',
-              color: nv.carbs,
-            ),
-            const SizedBox(height: 12),
-            _GoalBar(
-              label: 'Gorduras',
-              consumed: totals.fat,
-              goal: null,
-              unit: 'g',
-              color: nv.fat,
-            ),
-          ],
-        ),
+    return NvCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          if (subtitle != null)
+            Text(subtitle!, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          _GoalBar(
+            label: 'Calorias',
+            consumed: totals.kcal,
+            goal: goal,
+            unit: 'kcal',
+            color: theme.colorScheme.primary,
+            large: true,
+          ),
+          const SizedBox(height: 16),
+          _GoalBar(
+            label: 'Proteína',
+            consumed: totals.protein,
+            goal: goalProtein,
+            unit: 'g',
+            color: nv.protein,
+          ),
+          const SizedBox(height: 12),
+          _GoalBar(
+            label: 'Carboidratos',
+            consumed: totals.carbs,
+            goal: goalCarbs,
+            unit: 'g',
+            color: nv.carbs,
+          ),
+          const SizedBox(height: 12),
+          _GoalBar(
+            label: 'Gorduras',
+            consumed: totals.fat,
+            goal: goalFat,
+            unit: 'g',
+            color: nv.fat,
+          ),
+        ],
       ),
     );
   }
@@ -350,9 +369,9 @@ class _PlanMealCard extends StatelessWidget {
     final theme = Theme.of(context);
     final note = meal.note;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: NvCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

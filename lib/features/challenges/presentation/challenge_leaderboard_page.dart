@@ -112,36 +112,34 @@ class _ChallengeLeaderboardPageState extends State<ChallengeLeaderboardPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.emoji_events_outlined,
-                          color: theme.colorScheme.primary,
+            child: NvCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.emoji_events_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          challenge.type.label,
+                          style: theme.textTheme.titleMedium,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            challenge.type.label,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        Text(
-                          '${_formatDate(challenge.startsAt)} – '
-                          '${_formatDate(challenge.endsAt)}',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(challenge.rule, style: theme.textTheme.bodyMedium),
-                  ],
-                ),
+                      ),
+                      Text(
+                        '${_formatDate(challenge.startsAt)} – '
+                        '${_formatDate(challenge.endsAt)}',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(challenge.rule, style: theme.textTheme.bodyMedium),
+                ],
               ),
             ),
           ),
