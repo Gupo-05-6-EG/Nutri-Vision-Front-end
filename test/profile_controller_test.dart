@@ -75,6 +75,39 @@ void main() {
     await synced.close();
   });
 
+  test('recarrega quando o vinculo com o nutricionista muda', () async {
+    var calls = 0;
+    final (client, auth) = await loggedSession(
+      MockClient((request) async {
+        if (request.url.path == ProfileRepository.path(7)) {
+          calls++;
+          return jsonResponse(profileJson());
+        }
+        if (request.url.path == '/link') {
+          return jsonResponse({
+            'nutricionista': {'id': 3, 'nome': 'Dra. Camila Mendes'},
+            'status': 'pendente',
+          });
+        }
+        return jsonResponse(<String, Object?>{});
+      }),
+    );
+    final controller =
+        ProfileController(auth: auth, repository: ProfileRepository(client));
+    await controller.refresh();
+    final before = calls;
+
+    await auth.linkProfessional('123456');
+    await pumpEventQueue();
+    expect(calls, before + 1);
+
+    await auth.acceptLink(3);
+    await pumpEventQueue();
+    expect(calls, before + 2);
+
+    controller.dispose();
+  });
+
   test('erro da API fica em error, sem perfil', () async {
     final (client, auth) = await loggedSession(
       MockClient((_) async => http.Response('erro', 500)),

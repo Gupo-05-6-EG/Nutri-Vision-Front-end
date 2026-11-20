@@ -53,8 +53,14 @@ class ProfileController extends ChangeNotifier {
       }
       return;
     }
-    if (_loadedFor != userId) unawaited(refresh());
+    if (_loadedFor != userId || _linkSeen != auth.linkChanges) {
+      _linkSeen = auth.linkChanges;
+      unawaited(refresh());
+    }
   }
+
+  /// Ultima mudanca de vinculo ja refletida no perfil.
+  int _linkSeen = 0;
 
   /// Busca o perfil de novo. Chamadas simultaneas compartilham a mesma busca.
   Future<void> refresh() {
