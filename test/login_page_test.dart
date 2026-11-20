@@ -28,6 +28,7 @@ import 'package:nutri_vision/features/shell/presentation/main_shell.dart';
 import 'package:nutri_vision/features/plan/data/plan_repository.dart';
 import 'package:nutri_vision/features/reminders/application/push_service.dart';
 import 'package:nutri_vision/features/reminders/data/reminder_repository.dart';
+import 'support/session.dart';
 import 'package:nutri_vision/features/screening/data/screening_repository.dart';
 
 /// Testes de widget da entrada do app (Task 7.4, parte 3/4): boas-vindas,
@@ -364,6 +365,64 @@ void main() {
         h.requests.map((r) => r.url.path),
         ['/linking-code/123456/previa'],
       );
+    });
+
+    testWidgets('voltar do aceite depois do cadastro leva ao Inicio',
+        (tester) async {
+      http.Response json(Object body) => http.Response(
+            jsonEncode(body),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+      final h = _Harness((request) async {
+        switch (request.url.path) {
+          case '/linking-code/123456/previa':
+            return json({
+              'nutricionista': {'id': 3, 'nome': 'Dra. Camila Mendes'},
+              'crn': 'CRN-3 4289',
+              'expira_em': '2026-11-20T10:00:00Z',
+            });
+          case AuthRepository.registerPatientPath:
+            return json({
+              'access_token': fakeJwt(),
+              'usuario': {'id': 7},
+            });
+          case '/privacidade/consentimento':
+            return json({
+              'versao_termo': 'v1.0',
+              'aceito_em': '2026-11-20T10:00:00Z',
+              'revogado_em': null,
+            });
+          case AuthRepository.linkPath:
+            return json({
+              'nutricionista': {'id': 3, 'nome': 'Dra. Camila Mendes'},
+              'status': 'pendente',
+            });
+        }
+        return http.Response('{"detail":"nao encontrado"}', 404);
+      });
+      await h.pump(tester);
+      await _tap(tester, find.text('Tenho nutricionista'));
+      await tester.enterText(_field('Código de 6 dígitos'), '123456');
+      await _tap(tester, find.widgetWithText(NvButton, 'Continuar'));
+
+      await tester.enterText(_field('Nome completo'), 'Ana Souza');
+      await tester.enterText(_field('E-mail (para login)'), 'ana@email.com');
+      await tester.enterText(_field('Criar senha'), 'Senha-forte-123');
+      await _tap(tester, find.textContaining('Li e aceito'));
+      await _tap(tester, find.textContaining('Consinto com o tratamento'));
+      await _tap(
+        tester,
+        find.widgetWithText(NvButton, 'Criar conta e iniciar jornada!'),
+      );
+      expect(find.text('Aceitar vínculo'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MainShell), findsOneWidget);
+      expect(find.byType(LinkCodePage), findsNothing);
+      expect(find.byType(LinkedSignupPage), findsNothing);
     });
 
     testWidgets('codigo invalido avisa e nao segue', (tester) async {
