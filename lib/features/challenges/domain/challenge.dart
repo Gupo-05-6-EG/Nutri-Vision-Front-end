@@ -248,12 +248,13 @@ class FriendSummary {
 
   factory FriendSummary.fromJson(Map<String, dynamic> json) {
     final patientId = (json['paciente_id'] as num).toInt();
+    // O nome vem do cadastro (BE-08); o username so existe em contas antigas.
     final rawName =
-        (json['username'] as String?) ?? (json['nome'] as String?) ?? '';
+        (json['nome'] as String?) ?? (json['username'] as String?) ?? '';
     final cleanName = rawName.trim();
     return FriendSummary(
       patientId: patientId,
-      displayName: cleanName.isEmpty ? 'Paciente #$patientId' : cleanName,
+      displayName: cleanName.isEmpty ? 'Amigo' : cleanName,
       streak: (json['streak'] as num?)?.toInt() ?? 0,
     );
   }

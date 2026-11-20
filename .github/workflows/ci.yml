@@ -82,3 +82,23 @@ jobs:
           name: nutri-vision-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
+
+  build-web:
+    name: Build da web
+    runs-on: ubuntu-latest
+    needs: [analyze, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: cp .env.example .env
+      # A pasta web/ tambem e gerada e nao versionada. O build garante que o app
+      # continua abrindo no navegador (antes travava antes da primeira tela).
+      - name: Gera a pasta web
+        run: flutter create --platforms=web --org br.com.nutrivision .
+      - run: flutter pub get
+      - name: flutter build web
+        run: flutter build web --release

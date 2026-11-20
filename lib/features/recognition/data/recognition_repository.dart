@@ -7,10 +7,14 @@ import '../../meals/domain/local_meal_record.dart';
 import '../../meals/domain/meal_type.dart';
 import '../domain/detected_item.dart';
 import '../domain/nutrition_estimate.dart';
+import 'photo_picker.dart';
 
-/// A analise demorou mais que o limite de espera.
+/// A analise demorou mais que o limite de espera. A analise continua na IA:
+/// da para seguir esperando pelo mesmo [analysisId] ([waitForAnalysis]).
 class AnalysisTimeout implements Exception {
-  const AnalysisTimeout();
+  const AnalysisTimeout([this.analysisId]);
+
+  final String? analysisId;
 }
 
 /// Analise da foto pela IA, calculo e registro da refeicao revisada
@@ -20,7 +24,8 @@ class RecognitionRepository {
     this._client, {
     LocalMealStore? localStore,
     this.pollInterval = const Duration(seconds: 2),
-    this.analysisTimeout = const Duration(minutes: 2),
+    // A IA desiste em no maximo ~170 s (2 tentativas x 2 modelos x 40 s + 10 s).
+    this.analysisTimeout = const Duration(minutes: 3),
   }) : _localStore = localStore;
 
   static const String analysesPath = '/analises';
@@ -40,6 +45,7 @@ class RecognitionRepository {
   Future<PhotoAnalysis> analyzePhoto(
     Uint8List bytes, {
     required String filename,
+    PlateType? plateType,
     void Function(AnalysisStatus status)? onProgress,
   }) async {
     final created = await _client.postFile(
@@ -48,12 +54,36 @@ class RecognitionRepository {
       bytes: bytes,
       filename: filename,
       contentType: imageContentType(filename),
+      fields: {if (plateType != null) 'tipo_prato': plateType.apiValue},
     );
-    var analysis = PhotoAnalysis.fromJson(created as Map<String, dynamic>);
+    final analysis = PhotoAnalysis.fromJson(created as Map<String, dynamic>);
+    return _poll(analysis, onProgress);
+  }
+
+  /// Continua esperando uma analise ja enviada (depois de [AnalysisTimeout]),
+  /// sem reenviar a foto.
+  Future<PhotoAnalysis> waitForAnalysis(
+    String analysisId, {
+    void Function(AnalysisStatus status)? onProgress,
+  }) async {
+    final result = await _client.get('$analysesPath/$analysisId');
+    return _poll(
+      PhotoAnalysis.fromJson(result as Map<String, dynamic>),
+      onProgress,
+    );
+  }
+
+  Future<PhotoAnalysis> _poll(
+    PhotoAnalysis first,
+    void Function(AnalysisStatus status)? onProgress,
+  ) async {
+    var analysis = first;
     final deadline = DateTime.now().add(analysisTimeout);
     while (analysis.status.isPending) {
       onProgress?.call(analysis.status);
-      if (DateTime.now().isAfter(deadline)) throw const AnalysisTimeout();
+      if (DateTime.now().isAfter(deadline)) {
+        throw AnalysisTimeout(analysis.id);
+      }
       await Future<void>.delayed(pollInterval);
       final result = await _client.get('$analysesPath/${analysis.id}');
       analysis = PhotoAnalysis.fromJson(result as Map<String, dynamic>);
@@ -80,6 +110,7 @@ class RecognitionRepository {
     required DateTime consumedAt,
     required MealType type,
     required NutritionEstimate estimate,
+    MealOrigin origin = MealOrigin.photo,
   }) async {
     final store = _localStore;
     LocalMealRecord? localRecord;
@@ -100,6 +131,7 @@ class RecognitionRepository {
         'paciente_id': patientId,
         'consumida_em': consumedAt.toUtc().toIso8601String(),
         'tipo': type.apiValue,
+        'origem': origin.apiValue,
         'itens': [for (final item in estimate.items) item.toMealItemJson()],
       });
       if (store != null && localRecord != null) {
@@ -124,4 +156,14 @@ String imageContentType(String filename) {
   if (name.endsWith('.webp')) return 'image/webp';
   if (name.endsWith('.heic') || name.endsWith('.heif')) return 'image/heic';
   return 'image/jpeg';
+}
+
+/// Como a refeicao foi registrada: por foto (+20 XP) ou montada a mao (+10 XP).
+enum MealOrigin {
+  photo('foto'),
+  manual('manual');
+
+  const MealOrigin(this.apiValue);
+
+  final String apiValue;
 }

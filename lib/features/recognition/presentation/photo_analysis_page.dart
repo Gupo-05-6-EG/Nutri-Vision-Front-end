@@ -2,10 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../foods/data/food_repository.dart';
+import '../data/camera_engine.dart';
 import '../data/photo_picker.dart';
 import '../data/recognition_repository.dart';
 import '../domain/detected_item.dart';
+import 'camera_capture_page.dart';
 import 'recognition_review_page.dart';
+
+/// Abre a camera do app; `null` quando o paciente desiste.
+typedef OpenCamera = Future<PickedPhoto?> Function(
+  BuildContext context,
+  PickPhoto pickPhoto,
+);
+
+/// Camera propria (AP-07). A galeria e a camera do sistema ficam como saida.
+Future<PickedPhoto?> openCameraCapture(
+  BuildContext context,
+  PickPhoto pickPhoto,
+) {
+  return Navigator.of(context).push<PickedPhoto>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => CameraCapturePage(
+        createEngine: DeviceCameraEngine.new,
+        pickFromGallery: pickPhoto,
+        pickWithSystemCamera: pickPhoto,
+      ),
+    ),
+  );
+}
 
 /// Registro de refeicao por foto (RF02.1): o paciente tira (ou escolhe) a foto
 /// do prato, a IA identifica os alimentos e a revisao abre com o resultado.
@@ -17,6 +42,7 @@ class PhotoAnalysisPage extends StatefulWidget {
     required this.patientId,
     this.foods,
     this.pickPhoto = pickPhotoWithImagePicker,
+    this.openCamera = openCameraCapture,
     this.consumedAt,
     super.key,
   });
@@ -27,6 +53,9 @@ class PhotoAnalysisPage extends StatefulWidget {
   /// Busca so na TACO, usada na revisao para trocar um alimento.
   final FoodRepository? foods;
   final PickPhoto pickPhoto;
+
+  /// "Tirar foto" abre a camera do app (testes trocam por uma falsa).
+  final OpenCamera openCamera;
 
   /// Quando a refeicao foi consumida; padrao: agora (ao abrir a revisao).
   final DateTime? consumedAt;
@@ -46,6 +75,9 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
   /// A falha foi de rede/servico (vale repetir com a mesma foto).
   bool _retryable = false;
 
+  /// A IA ainda esta analisando: da para continuar esperando pelo mesmo id.
+  String? _pendingAnalysisId;
+
   /// Itens de uma analise que nao estimou com seguranca, para revisar mesmo
   /// assim (ex.: `low_confidence`).
   List<DetectedItem> _uncertainItems = const [];
@@ -53,7 +85,9 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
   Future<void> _pick(PhotoSource source) async {
     final PickedPhoto? photo;
     try {
-      photo = await widget.pickPhoto(source);
+      photo = source == PhotoSource.camera
+          ? await widget.openCamera(context, widget.pickPhoto)
+          : await widget.pickPhoto(source);
     } catch (_) {
       if (!mounted) return;
       _showProblem(
@@ -68,21 +102,42 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
     await _analyze(photo);
   }
 
-  Future<void> _analyze(PickedPhoto photo) async {
+  Future<void> _analyze(PickedPhoto photo) => _run(
+        photo,
+        () => widget.repository.analyzePhoto(
+          photo.bytes,
+          filename: photo.filename,
+          plateType: photo.plateType,
+          onProgress: _onProgress,
+        ),
+      );
+
+  /// Segue esperando a mesma analise, sem reenviar a foto (I2).
+  Future<void> _keepWaiting(String analysisId) => _run(
+        _photo!,
+        () => widget.repository.waitForAnalysis(
+          analysisId,
+          onProgress: _onProgress,
+        ),
+      );
+
+  void _onProgress(AnalysisStatus status) {
+    if (mounted) setState(() => _progress = status);
+  }
+
+  Future<void> _run(
+    PickedPhoto photo,
+    Future<PhotoAnalysis> Function() request,
+  ) async {
     setState(() {
       _photo = photo;
       _step = _Step.analyzing;
       _progress = null;
       _uncertainItems = const [];
+      _pendingAnalysisId = null;
     });
     try {
-      final analysis = await widget.repository.analyzePhoto(
-        photo.bytes,
-        filename: photo.filename,
-        onProgress: (status) {
-          if (mounted) setState(() => _progress = status);
-        },
-      );
+      final analysis = await request();
       if (!mounted) return;
       if (analysis.status == AnalysisStatus.done && analysis.items.isNotEmpty) {
         await _review(analysis.items);
@@ -92,14 +147,15 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
       _showProblem(analysis.problemMessage, retryable: false);
     } catch (error) {
       if (!mounted) return;
+      _pendingAnalysisId = error is AnalysisTimeout ? error.analysisId : null;
       _showProblem(_describe(error), retryable: true);
     }
   }
 
   String _describe(Object error) {
     if (error is AnalysisTimeout) {
-      return 'A análise está demorando mais que o normal. Tente de novo em '
-          'instantes.';
+      return 'A análise está demorando mais que o normal. Você pode continuar '
+          'esperando ou tentar de novo.';
     }
     if (error is ApiException) {
       return switch (error.statusCode) {
@@ -236,6 +292,14 @@ class _PhotoAnalysisPageState extends State<PhotoAnalysisPage> {
           FilledButton.tonal(
             onPressed: () => _review(_uncertainItems),
             child: const Text('Revisar os alimentos mesmo assim'),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_pendingAnalysisId case final id?) ...[
+          FilledButton.icon(
+            onPressed: () => _keepWaiting(id),
+            icon: const Icon(Icons.hourglass_top),
+            label: const Text('Continuar esperando'),
           ),
           const SizedBox(height: 12),
         ],

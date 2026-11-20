@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/ui/nv_widgets.dart';
 import '../data/achievement_repository.dart';
 
 class AchievementsPage extends StatefulWidget {
@@ -62,32 +64,29 @@ class _AchievementsPageState extends State<AchievementsPage> {
                         label:
                             '${item.name}. ${item.unlocked ? "Obtida" : "Bloqueada"}. ${item.progress} de ${item.target}.',
                         excludeSemantics: true,
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  item.unlocked
-                                      ? Icons.emoji_events
-                                      : Icons.lock_outline,
-                                ),
-                                Text(
-                                  item.name,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                Text(
-                                  item.unlocked
-                                      ? 'Obtida'
-                                      : 'Bloqueada · ${item.progress}/${item.target}',
-                                ),
-                                LinearProgressIndicator(
-                                  value: item.progress / item.target,
-                                ),
-                              ],
-                            ),
+                        child: NvCard(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                item.unlocked
+                                    ? Icons.emoji_events
+                                    : Icons.lock_outline,
+                              ),
+                              Text(
+                                item.name,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              Text(
+                                item.unlocked
+                                    ? 'Obtida'
+                                    : 'Bloqueada · ${item.progress}/${item.target}',
+                              ),
+                              LinearProgressIndicator(
+                                value: item.progress / item.target,
+                              ),
+                            ],
                           ),
                         ),
                       ),

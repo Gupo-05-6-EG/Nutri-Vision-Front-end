@@ -25,6 +25,13 @@ dependencies:
   image_picker_android: 0.8.13+17
   # MediaType do arquivo no upload multipart da foto.
   http_parser: ^4.1.2
+  # Camera propria da refeicao (AP-07), com suporte a web. Fixos: as versoes
+  # seguintes exigem Flutter >= 3.44, e o CI usa 3.41.7 (como o image_picker_android).
+  camera: 0.12.0+2
+  camera_android_camerax: 0.7.2
+  camera_platform_interface: 2.15.0
+  # Leitor do QR Code do vinculo com o nutricionista (AP-12).
+  mobile_scanner: ^7.5.0
 
 dev_dependencies:
   flutter_test:
@@ -37,3 +44,19 @@ flutter:
     # O .env nao vai pro git (ver .gitignore). Rode `cp .env.example .env`
     # antes do primeiro build - o CI faz isso automaticamente.
     - .env
+    # Ilustracoes do prototipo.
+    - assets/images/
+  # Nunito (SIL Open Font License, ver assets/fonts/OFL.txt): embutida para
+  # funcionar sem internet e igual em todas as plataformas.
+  fonts:
+    - family: Nunito
+      fonts:
+        - asset: assets/fonts/Nunito-Regular.ttf
+        - asset: assets/fonts/Nunito-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Nunito-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Nunito-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Nunito-Black.ttf
+          weight: 900

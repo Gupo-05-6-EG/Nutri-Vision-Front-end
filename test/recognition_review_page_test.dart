@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:nutri_vision/core/network/api_client.dart';
+import 'package:nutri_vision/core/ui/nv_widgets.dart';
 import 'package:nutri_vision/features/foods/data/food_repository.dart';
 import 'package:nutri_vision/features/meals/domain/meal_type.dart';
 import 'package:nutri_vision/features/recognition/data/recognition_repository.dart';
@@ -120,6 +121,7 @@ Future<_FakeApi> _pumpPage(
   _FakeApi? api,
   ValueChanged<Object?>? onPop,
   bool withFoodSearch = true,
+  bool withPhoto = true,
 }) async {
   // A foto ocupa a tela padrao de 800x600; a tela alta mostra todos os itens.
   tester.view.physicalSize = const Size(800, 1600);
@@ -143,7 +145,7 @@ Future<_FakeApi> _pumpPage(
                   builder: (context) => RecognitionReviewPage(
                     repository: repository,
                     patientId: 4,
-                    photo: _photo,
+                    photo: withPhoto ? _photo : null,
                     items: items,
                     consumedAt: DateTime.utc(2026, 10, 20, 15, 30),
                     foods: withFoodSearch ? FoodRepository(client) : null,
@@ -178,7 +180,7 @@ Future<void> _replaceWithFarofa(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder _registerButton() => find.widgetWithText(FilledButton, 'Registrar');
+Finder _registerButton() => find.byKey(const Key('confirm-meal'));
 
 void main() {
   group('DetectedItem', () {
@@ -330,7 +332,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Total: 150 kcal'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
 
       // A folha so oferece trocar (nao ha gramas para editar)
       await tester.tap(find.byTooltip('Trocar farofa'));
@@ -345,7 +347,7 @@ void main() {
       expect(find.text('Fora da TACO · 30 g'), findsNothing);
       expect(find.text('Total: 200 kcal'), findsOneWidget);
       expect(
-        tester.widget<FilledButton>(_registerButton()).onPressed,
+        tester.widget<NvButton>(_registerButton()).onPressed,
         isNotNull,
       );
     });
@@ -371,7 +373,7 @@ void main() {
 
       expect(api.calculations, isEmpty);
       expect(find.text('Total: 0 kcal'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
     });
 
     testWidgets('excluir remove o item e desfazer devolve', (tester) async {
@@ -398,7 +400,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Nenhum alimento na refeição.'), findsOneWidget);
-      expect(tester.widget<FilledButton>(_registerButton()).onPressed, isNull);
+      expect(tester.widget<NvButton>(_registerButton()).onPressed, isNull);
     });
 
     testWidgets('registrar fecha o aviso de desfazer de um item excluido', (
@@ -445,6 +447,7 @@ void main() {
         DateTime.utc(2026, 10, 20, 15, 30).toLocal(),
       );
       expect(meal['tipo'], suggested.apiValue);
+      expect(meal['origem'], 'foto');
       expect((meal['itens'] as List).first, {
         'nome_alimento': 'Arroz, tipo 1, cozido',
         'quantidade_g': 150,
@@ -455,17 +458,101 @@ void main() {
       });
     });
 
+    testWidgets('botoes -/+ mudam 10 g e recalculam', (tester) async {
+      final api = await _pumpPage(tester, items: const [_arroz]);
+      final before = api.calculations.length;
+
+      await tester
+          .tap(find.byTooltip('Aumentar 10 g de Arroz, tipo 1, cozido'));
+      await tester.pumpAndSettle();
+      expect(find.text('160g'), findsOneWidget);
+      expect(find.text('Total: 160 kcal'), findsOneWidget);
+
+      await tester
+          .tap(find.byTooltip('Diminuir 10 g de Arroz, tipo 1, cozido'));
+      await tester
+          .tap(find.byTooltip('Diminuir 10 g de Arroz, tipo 1, cozido'));
+      await tester.pumpAndSettle();
+      expect(find.text('140g'), findsOneWidget);
+      expect(api.calculations.length, greaterThan(before));
+      expect((api.calculations.last.single as Map)['gramas'], 140);
+    });
+
+    testWidgets('confirmar mostra o XP da foto', (tester) async {
+      await _pumpPage(tester, items: const [_arroz]);
+
+      expect(find.text('Confirmar refeição'), findsOneWidget);
+      expect(find.text('+20 XP'), findsOneWidget);
+      expect(find.text('Itens identificados'), findsOneWidget);
+    });
+
     testWidgets('registra com o tipo escolhido no seletor', (tester) async {
       final api = await _pumpPage(tester);
 
-      await tester.tap(find.byType(DropdownButtonFormField<MealType>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jantar').last);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Jantar'));
       await tester.pumpAndSettle();
       await tester.tap(_registerButton());
       await tester.pumpAndSettle();
 
       expect(api.savedMeals.single['tipo'], 'jantar');
     });
+  });
+
+  group('registro manual', () {
+    testWidgets('comeca vazia, adiciona da TACO e registra como manual',
+        (tester) async {
+      Object? popped;
+      final api = await _pumpPage(
+        tester,
+        items: const [],
+        withPhoto: false,
+        onPop: (value) => popped = value,
+      );
+
+      expect(find.text('Nova refeição'), findsOneWidget);
+      expect(find.text('Adicione os alimentos da refeição.'), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+
+      await tester.tap(find.text('Adicionar alimento'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'farofa');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Farofa de mandioca'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('portion-grams')), '50');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('portion-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Farofa de mandioca'), findsOneWidget);
+      expect(find.text('Manual'), findsOneWidget);
+      await tester.tap(_registerButton());
+      await tester.pumpAndSettle();
+
+      expect(popped, isTrue);
+      final meal = api.savedMeals.single;
+      expect(meal['origem'], 'manual');
+      expect(
+        (meal['itens'] as List).single['nome_alimento'],
+        'Farofa de mandioca',
+      );
+    });
+
+    testWidgets('na foto, o item que a IA nao viu entra como manual',
+        (tester) async {
+      await _pumpPage(tester, items: const [_arroz]);
+
+      expect(find.text('Adicionar item manual'), findsOneWidget);
+    });
+  });
+
+  test('DetectedItem.manual tem confianca cheia e marca de manual', () {
+    const item = DetectedItem.manual(name: 'Ovo', tacoId: 9, grams: 50);
+
+    expect(item.manual, isTrue);
+    expect(item.isInTaco, isTrue);
+    expect(item.level, ConfidenceLevel.high);
+    expect(item.copyWith(grams: 60).manual, isTrue);
   });
 }

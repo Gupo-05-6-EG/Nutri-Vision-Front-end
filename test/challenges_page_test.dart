@@ -248,8 +248,13 @@ void main() {
             return _json([
               {
                 'paciente_id': 20,
-                'username': 'Bruno Costa',
+                'nome': 'Bruno Costa',
                 'streak': 5,
+              },
+              {
+                'paciente_id': 30,
+                'nome': 'Carla Dias',
+                'streak': 2,
               },
             ]);
           }
@@ -292,16 +297,14 @@ void main() {
       await tester.tap(find.text('Sequência na meta').last);
       await tester.pumpAndSettle();
 
-      // Seleciona amigo da lista e adiciona outro por ID
+      // Seleciona os amigos pelo nome (nao ha mais campo de id)
       await tester.drag(find.byType(ListView), const Offset(0, -250));
       await tester.pumpAndSettle();
 
+      expect(find.text('Bruno Costa'), findsOneWidget);
+      expect(find.textContaining('#'), findsNothing);
       await tester.tap(find.byKey(const Key('friend-chip-20')));
-      await tester.enterText(
-        find.byKey(const Key('invite-friend-id-input')),
-        '30',
-      );
-      await tester.tap(find.byKey(const Key('add-friend-id-button')));
+      await tester.tap(find.byKey(const Key('friend-chip-30')));
       await tester.pumpAndSettle();
 
       await tester.drag(find.byType(ListView), const Offset(0, -250));
@@ -329,7 +332,9 @@ void main() {
           }
           if (request.method == 'GET' &&
               request.url.path == '/api/v1/amizades') {
-            return _json([]);
+            return _json([
+              {'paciente_id': 50, 'nome': 'Fernanda Dias', 'streak': 1},
+            ]);
           }
           if (request.method == 'POST' &&
               request.url.path == '/api/v1/challenges/1/invites') {
@@ -367,11 +372,7 @@ void main() {
       await tester.tap(find.byKey(const Key('open-invite-friends')));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byKey(const Key('sheet-friend-id-input')),
-        '50',
-      );
-      await tester.tap(find.byKey(const Key('sheet-add-friend-button')));
+      await tester.tap(find.byKey(const Key('sheet-friend-chip-50')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('sheet-send-invites-button')));

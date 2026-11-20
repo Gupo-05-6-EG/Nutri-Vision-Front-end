@@ -13,6 +13,9 @@ histórico de consumo e a gamificação.
 | Token JWT | `flutter_secure_storage` |
 | Armazenamento Offline | `hive` + `connectivity_plus` (RNF07) |
 | Push (lembretes) | `firebase_core` + `firebase_messaging` (FCM) |
+| Câmera própria | `camera` (Android, iOS e navegador) |
+| QR Code do vínculo | `mobile_scanner` |
+| Fonte | Nunito embutida em `assets/fonts` (OFL) |
 | Lint | `flutter_lints` |
 | Testes | `flutter_test` + `http/testing` (MockClient) |
 | CI | GitHub Actions |
@@ -25,22 +28,30 @@ Organização *feature-first* — cada requisito funcional entra como uma pasta 
 ```
 lib/
 ├── main.dart                     # carrega o .env e sobe o app
-├── app.dart                      # MaterialApp, tema, rota inicial
+├── app.dart                      # MaterialApp, tema (claro/escuro), rota inicial
+├── app_services.dart             # repositórios e controladores, criados uma vez
 ├── core/
 │   ├── config/env.dart           # leitura validada do .env
-│   ├── config/app_theme.dart     # tema (cores definitivas vêm da Task 1.7)
+│   ├── config/app_theme.dart     # tema com a paleta do protótipo
+│   ├── config/theme_controller.dart  # modo de exibição salvo entre aberturas
+│   ├── ui/                       # componentes do protótipo (NvCard, NvButton, XP...)
 │   └── network/
 │       ├── api_client.dart       # cliente HTTP + injeção do JWT
 │       └── api_exception.dart
 └── features/
+    ├── shell/                    # abas Início, Registrar, Social e Perfil
+    ├── home/                     # aba Início (meta do dia, macros e conquistas)
+    ├── register/                 # aba Registrar (foto, manual e histórico)
+    ├── social/                   # Ranking Social, amigos por e-mail (RF05, RF29)
+    ├── profile/                  # perfil, meta única, estatísticas e configurações
     ├── challenges/               # desafios entre amigos e placar (RF05.2, RF05.3)
     ├── foods/                    # busca manual de alimentos (RF02.2)
     ├── meals/                    # histórico de refeições (RF04, RF12)
     ├── plan/                     # plano prescrito e progresso (RF06, RF25)
-    ├── recognition/              # foto do prato, análise da IA e revisão (RF02.1, RF02.3)
-    ├── reminders/                # lembretes de refeição + push FCM (RF26)
-    └── health/                   # tela de diagnóstico (temporária)
-test/                             # testes unitários
+    ├── recognition/              # câmera, análise da IA e revisão (RF02.1, RF02.3)
+    ├── linking/                  # código e QR Code do nutricionista
+    └── reminders/                # lembretes de refeição + push FCM (RF26)
+test/                             # testes de unidade e de widget
 ```
 
 ## Primeiro setup
@@ -57,6 +68,16 @@ flutter run
 > carrega código nativo gerado nem conflitos de merge nele. O CI roda esse mesmo
 > comando antes do build.
 
+### No navegador
+
+```bash
+flutter create --platforms=web --org br.com.nutrivision .
+flutter run -d chrome     # ou: flutter build web e sirva a pasta build/web
+```
+
+Use `API_URL=http://localhost:8000/api/v1` no `.env`. Na web o armazenamento
+offline (Hive) usa o IndexedDB do navegador, e a câmera abre pelo navegador.
+
 > **Emulador Android:** `localhost` dentro do emulador não é a sua máquina. Use
 > `API_URL=http://10.0.2.2:8000/api/v1` (já é o padrão do `.env.example`).
 
@@ -70,11 +91,16 @@ flutter run
 | `flutter analyze` | análise estática |
 | `dart format .` | formatação |
 | `flutter build apk --debug` | APK de debug |
+| `flutter build web` | build para o navegador (precisa da pasta `web/`) |
 
 ## Variáveis de ambiente
 
 Documentadas em [`.env.example`](.env.example). O `.env` é declarado como asset
 no `pubspec.yaml` e lido em runtime pelo `flutter_dotenv` — **não vai pro git**.
+
+A meta diária **não** vem mais do `.env`: todas as telas usam a meta do perfil
+(`GET /pacientes/{id}/perfil`), que é a do plano ativo do nutricionista ou, sem
+plano, a da triagem.
 
 ## Lembretes de refeição (RF26)
 
@@ -138,15 +164,23 @@ versionadas e o CI as recria. Com as 4 variáveis `FIREBASE_*` vazias (padrão d
 
 ## Registro de refeição por foto (IA)
 
-Na home, **Registrar refeição por foto** abre a câmera (ou a galeria). A foto vai
-para o back-end em `POST /analises`, que repassa ao serviço de IA
+Na aba **Registrar**, **Foto do prato** abre a câmera do app: guia de
+enquadramento, flash, troca de câmera, galeria e a escolha **prato raso/fundo**,
+que vai junto (`tipo_prato`) como dica para a IA. Sem câmera ou sem permissão, a
+tela oferece a câmera do sistema e a galeria. A foto vai para o back-end em
+`POST /analises`, que repassa ao serviço de IA
 ([Nutri-Vision-IA](https://github.com/Gupo-05-6-EG/Nutri-Vision-IA)); o app consulta
-`GET /analises/{id}` a cada 2 s até a análise terminar (desiste em 2 min).
+`GET /analises/{id}` a cada 2 s por até 3 min (a IA desiste antes, em cerca de
+170 s). Se passar disso, **Continuar esperando** consulta o mesmo id, sem reenviar
+a foto.
 
 - **Deu certo:** abre a revisão com os alimentos da TACO, as gramas estimadas e a
-  confiança de cada um. O paciente corrige as gramas, **troca** um alimento por outro
-  da TACO (busca), exclui itens e registra. O recálculo usa
+  confiança de cada um. O paciente corrige as gramas (botões −/+ de 10 g ou
+  digitando), **troca** um alimento por outro da TACO, **adiciona** um item que a IA
+  não viu, exclui itens, escolhe a categoria e confirma (+20 XP). O recálculo usa
   `POST /calculo-nutricional` com o `alimento_taco_id`.
+- **Registro manual:** **Adicionar manualmente** abre a mesma revisão, vazia, para
+  montar a refeição com alimentos da TACO (+10 XP). Funciona sem internet.
 - **Alimento fora da TACO:** a IA reconheceu, mas não está na nossa tabela — aparece
   como "Fora da TACO" e precisa ser trocado ou excluído antes de registrar.
 - **Foto ruim, nada no prato ou baixa confiança:** a tela explica o motivo e oferece
@@ -162,7 +196,8 @@ A foto sai reduzida do aparelho (até 1600 px, JPEG 85%) e não é guardada.
 
 | Peça | Onde |
 |---|---|
-| Câmera/galeria (`image_picker`) | `features/recognition/data/photo_picker.dart` |
+| Câmera do app | `features/recognition/presentation/camera_capture_page.dart` e `data/camera_engine.dart` |
+| Galeria e câmera do sistema (`image_picker`) | `features/recognition/data/photo_picker.dart` |
 | Envio, consulta da análise e cálculo | `features/recognition/data/recognition_repository.dart` |
 | Tela da foto e do andamento | `features/recognition/presentation/photo_analysis_page.dart` |
 | Revisão e troca de alimento | `features/recognition/presentation/recognition_review_page.dart` |

@@ -4,20 +4,40 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/auth_error_message.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
 import '../data/privacy_repository.dart';
 
+/// Entrega o JSON exportado ao paciente (compartilhar ou baixar).
+typedef SaveExport = Future<void> Function(Uint8List bytes, String filename);
+
+/// Compartilhamento do sistema (no navegador, a folha de compartilhar ou o
+/// download, conforme o que o navegador oferece).
+Future<void> shareExport(Uint8List bytes, String filename) async {
+  await SharePlus.instance.share(
+    ShareParams(
+      title: 'Exportação de dados Nutri Vision',
+      files: [
+        XFile.fromData(bytes, mimeType: 'application/json', name: filename),
+      ],
+    ),
+  );
+}
+
 class PrivacySettingsPage extends StatefulWidget {
   const PrivacySettingsPage({
     required this.auth,
     required this.repository,
+    this.saveExport = shareExport,
     super.key,
   });
 
   final AuthController auth;
   final PrivacyRepository repository;
+  final SaveExport saveExport;
 
   @override
   State<PrivacySettingsPage> createState() => _PrivacySettingsPageState();
@@ -114,18 +134,11 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
     try {
       final data = await widget.repository.exportData();
       final contents = const JsonEncoder.withIndent('  ').convert(data);
-      await SharePlus.instance.share(
-        ShareParams(
-          title: 'Exportação de dados Nutri Vision',
-          files: [
-            XFile.fromData(
-              Uint8List.fromList(utf8.encode(contents)),
-              mimeType: 'application/json',
-              name: 'nutri-vision-dados.json',
-            ),
-          ],
-        ),
+      await widget.saveExport(
+        Uint8List.fromList(utf8.encode(contents)),
+        'nutri-vision-dados.json',
       );
+      if (mounted) _showMessage('Seus dados foram exportados.');
     } catch (error) {
       if (mounted) setState(() => _error = authErrorMessage(error));
     } finally {
@@ -193,49 +206,47 @@ class _PrivacySettingsPageState extends State<PrivacySettingsPage> {
         if (_loading)
           const Center(child: CircularProgressIndicator())
         else if (status != null) ...[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        status.isActive
-                            ? Icons.check_circle_outline
-                            : Icons.info_outline,
-                        color: status.isActive ? colors.primary : colors.error,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          status.isActive
-                              ? 'Consentimento ativo'
-                              : 'Sem consentimento ativo',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (status.consents.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      'Histórico',
-                      style: Theme.of(context).textTheme.titleSmall,
+          NvCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      status.isActive
+                          ? Icons.check_circle_outline
+                          : Icons.info_outline,
+                      color: status.isActive ? colors.primary : colors.error,
                     ),
-                    for (final consent in status.consents)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('Aviso de privacidade ${consent.version}'),
-                        subtitle: Text(
-                          'Aceito em ${_formatDate(consent.acceptedAt)}'
-                          '${consent.revokedAt == null ? '' : '\nRevogado em ${_formatDate(consent.revokedAt!)}'}',
-                        ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        status.isActive
+                            ? 'Consentimento ativo'
+                            : 'Sem consentimento ativo',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
+                    ),
                   ],
+                ),
+                if (status.consents.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Histórico',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  for (final consent in status.consents)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Aviso de privacidade ${consent.version}'),
+                      subtitle: Text(
+                        'Aceito em ${_formatDate(consent.acceptedAt)}'
+                        '${consent.revokedAt == null ? '' : '\nRevogado em ${_formatDate(consent.revokedAt!)}'}',
+                      ),
+                    ),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 12),

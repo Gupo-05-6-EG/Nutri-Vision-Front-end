@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/nv_widgets.dart';
+
 import '../../../core/network/api_exception.dart';
 import '../../foods/domain/number_format.dart';
 import '../application/meal_sync_service.dart';
@@ -24,7 +26,7 @@ class MealHistoryPage extends StatefulWidget {
   const MealHistoryPage({
     required this.repository,
     required this.patientId,
-    required this.dailyGoalKcal,
+    this.dailyGoalKcal,
     this.today,
     this.initialType,
     this.syncService,
@@ -35,7 +37,8 @@ class MealHistoryPage extends StatefulWidget {
   final int patientId;
 
   /// Meta de calorias do dia, usada como 100% da barra de progresso.
-  final double dailyGoalKcal;
+  /// Meta diaria do perfil (plano ativo ou triagem); nula sem meta definida.
+  final double? dailyGoalKcal;
 
   /// Dia atual; existe para os testes nao dependerem do relogio.
   final DateTime? today;
@@ -285,42 +288,26 @@ class _DailyProgress extends StatelessWidget {
   const _DailyProgress({required this.totals, required this.goalKcal});
 
   final NutritionTotals totals;
-  final double goalKcal;
+  final double? goalKcal;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final ratio = goalKcal > 0 ? totals.kcal / goalKcal : 0.0;
-    final exceeded = ratio > 1;
-    final remaining = goalKcal - totals.kcal;
-
-    return Card(
-      child: Padding(
+    final goal = goalKcal ?? 0;
+    if (goal <= 0) {
+      return NvCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${formatNumber(totals.kcal)} de ${formatNumber(goalKcal)} kcal',
+              '${formatNumber(totals.kcal)} kcal no dia',
               style: theme.textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: ratio.clamp(0.0, 1.0),
-              minHeight: 10,
-              borderRadius: BorderRadius.circular(5),
-              color: exceeded ? theme.colorScheme.error : null,
-              semanticsLabel:
-                  '${formatNumber(totals.kcal)} de ${formatNumber(goalKcal)} quilocalorias',
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
-              exceeded
-                  ? '${formatNumber(-remaining)} kcal acima da meta'
-                  : '${formatNumber(remaining)} kcal restantes',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: exceeded ? theme.colorScheme.error : null,
-              ),
+              'Sem meta diária: faça a triagem no Perfil para calcular a sua.',
+              style: theme.textTheme.bodySmall,
             ),
             const Divider(height: 24),
             Wrap(
@@ -335,6 +322,51 @@ class _DailyProgress extends StatelessWidget {
             ),
           ],
         ),
+      );
+    }
+    final ratio = totals.kcal / goal;
+    final exceeded = ratio > 1;
+    final remaining = goal - totals.kcal;
+
+    return NvCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${formatNumber(totals.kcal)} de ${formatNumber(goal)} kcal',
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: ratio.clamp(0.0, 1.0),
+            minHeight: 10,
+            borderRadius: BorderRadius.circular(5),
+            color: exceeded ? theme.colorScheme.error : null,
+            semanticsLabel:
+                '${formatNumber(totals.kcal)} de ${formatNumber(goal)} quilocalorias',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            exceeded
+                ? '${formatNumber(-remaining)} kcal acima da meta'
+                : '${formatNumber(remaining)} kcal restantes',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: exceeded ? theme.colorScheme.error : null,
+            ),
+          ),
+          const Divider(height: 24),
+          Wrap(
+            spacing: 24,
+            runSpacing: 12,
+            alignment: WrapAlignment.spaceAround,
+            children: [
+              _Macro(label: 'Proteínas', grams: totals.protein),
+              _Macro(label: 'Carboidratos', grams: totals.carbs),
+              _Macro(label: 'Gorduras', grams: totals.fat),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -374,9 +406,9 @@ class _MealCard extends StatelessWidget {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: NvCard(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

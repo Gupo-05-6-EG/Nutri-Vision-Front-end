@@ -1,0 +1,61 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Versionado de propósito (o resto de android/ é gerado pelo flutter create).
+         As permissões que o app usa já chegam pelos plugins:
+         CAMERA (camera, mobile_scanner), INTERNET e ACCESS_NETWORK_STATE
+         (firebase_messaging, connectivity_plus), POST_NOTIFICATIONS e WAKE_LOCK
+         (firebase_messaging). Aqui só se ajusta o que sobra. -->
+
+    <!-- O plugin da câmera declara microfone e armazenamento, mas o app não grava
+         áudio (enableAudio: false) nem salva arquivos: fora do APK de produção. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+
+    <!-- Sem câmera o paciente ainda registra pela galeria ou à mão: o app não
+         some da loja em aparelhos sem câmera. -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false"
+        tools:replace="android:required" />
+
+    <!-- Produção só fala com a API por HTTPS. O HTTP local (10.0.2.2 no emulador)
+         é liberado apenas no manifesto de debug. -->
+    <application
+        android:label="Nutri Vision"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="false">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Tema mostrado enquanto o Flutter inicia; depois continua como fundo. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- Usado pelo Flutter para gerar o GeneratedPluginRegistrant. Não remover. -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <!-- Usado pelo motor do Flutter (ProcessTextPlugin), ver
+         https://developer.android.com/training/package-visibility -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>

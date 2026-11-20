@@ -178,33 +178,39 @@ class ScreeningNumberField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FieldLabel(label),
-        TextFormField(
-          controller: controller,
-          validator: validator,
-          textInputAction: textInputAction,
-          keyboardType: decimal
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : TextInputType.number,
-          inputFormatters: [
-            decimal
-                ? FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                : FilteringTextInputFormatter.digitsOnly,
-          ],
-          decoration: InputDecoration(
-            hintText: hint,
-            suffixText: unit,
-            prefixIcon: Icon(icon, color: scheme.primary),
-            filled: true,
-            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 20,
-            ),
-            border: OutlineInputBorder(borderRadius: radius),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: radius,
-              borderSide: BorderSide(color: scheme.outlineVariant),
+        // O rotulo visivel fica fora do campo (como no prototipo); para o leitor
+        // de tela o nome vai no proprio campo. Antes ele era anunciado so pelo
+        // texto de exemplo ("25", "175", "70.5") (A7).
+        ExcludeSemantics(child: _FieldLabel(label)),
+        Semantics(
+          label: '$label, em $unit',
+          child: TextFormField(
+            controller: controller,
+            validator: validator,
+            textInputAction: textInputAction,
+            keyboardType: decimal
+                ? const TextInputType.numberWithOptions(decimal: true)
+                : TextInputType.number,
+            inputFormatters: [
+              decimal
+                  ? FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
+                  : FilteringTextInputFormatter.digitsOnly,
+            ],
+            decoration: InputDecoration(
+              hintText: hint,
+              suffixText: unit,
+              prefixIcon: Icon(icon, color: scheme.primary),
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 20,
+              ),
+              border: OutlineInputBorder(borderRadius: radius),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: radius,
+                borderSide: BorderSide(color: scheme.outlineVariant),
+              ),
             ),
           ),
         ),

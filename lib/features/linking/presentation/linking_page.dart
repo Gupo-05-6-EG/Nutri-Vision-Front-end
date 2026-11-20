@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../auth/application/auth_controller.dart';
 import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_error_message.dart';
-import '../../auth/presentation/auth_validators.dart';
 import '../../auth/presentation/widgets/auth_widgets.dart';
+import '../../../core/ui/nv_widgets.dart';
+import 'link_code_widgets.dart';
 
 class LinkingPage extends StatefulWidget {
-  const LinkingPage({required this.auth, super.key});
+  const LinkingPage({
+    required this.auth,
+    this.scanCode = scanLinkCodeWithCamera,
+    super.key,
+  });
 
   final AuthController auth;
+  final ScanLinkCode scanCode;
 
   @override
   State<LinkingPage> createState() => _LinkingPageState();
@@ -57,6 +62,13 @@ class _LinkingPageState extends State<LinkingPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _scan() async {
+    final code = await widget.scanCode(context);
+    if (code == null || !mounted) return;
+    _codeController.text = code;
+    await _findNutritionist();
   }
 
   Future<void> _confirmLink() async {
@@ -134,51 +146,39 @@ class _LinkingPageState extends State<LinkingPage> {
                         const SizedBox(height: 28),
                         Form(
                           key: _formKey,
-                          child: TextFormField(
+                          child: LinkCodeField(
                             controller: _codeController,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.done,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                              LengthLimitingTextInputFormatter(6),
-                            ],
-                            onFieldSubmitted: (_) => _findNutritionist(),
-                            validator: AuthValidators.linkCode,
-                            decoration: const InputDecoration(
-                              labelText:
-                                  'C\u{00f3}digo de vincula\u{00e7}\u{00e3}o',
-                              hintText: '000000',
-                              prefixIcon: Icon(Icons.pin_outlined),
-                              border: OutlineInputBorder(),
-                            ),
+                            label: 'C\u{00f3}digo de vincula\u{00e7}\u{00e3}o',
+                            onSubmitted: (_) => _findNutritionist(),
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        NvButton(
+                          label: 'Escanear QR Code',
+                          icon: Icons.qr_code_scanner_rounded,
+                          style: NvButtonStyle.neutral,
+                          onPressed: _loading ? null : _scan,
                         ),
                         if (_error != null) ...[
                           const SizedBox(height: 12),
                           Text(_error!, style: TextStyle(color: colors.error)),
                         ],
                         const SizedBox(height: 18),
-                        FilledButton(
-                          onPressed: _loading ? null : _findNutritionist,
-                          child: _loading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Continuar'),
+                        AuthPrimaryButton(
+                          label: 'Continuar',
+                          loading: _loading && _nutritionist == null,
+                          onPressed: _findNutritionist,
                         ),
                         if (_nutritionist case final nutritionist?) ...[
                           const SizedBox(height: 28),
                           _NutritionistCard(nutritionist: nutritionist),
                           const SizedBox(height: 18),
-                          FilledButton.icon(
-                            onPressed: _loading ? null : _confirmLink,
-                            icon: const Icon(Icons.check),
-                            label: const Text(
-                              'Confirmar vincula\u{00e7}\u{00e3}o',
-                            ),
+                          NvButton(
+                            label: 'Confirmar vincula\u{00e7}\u{00e3}o',
+                            icon: Icons.check,
+                            style: NvButtonStyle.accent,
+                            loading: _loading,
+                            onPressed: _confirmLink,
                           ),
                         ],
                       ],
@@ -222,42 +222,40 @@ class _NutritionistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: colors.primaryContainer,
-              foregroundImage: nutritionist.photoUrl == null
-                  ? null
-                  : NetworkImage(nutritionist.photoUrl!),
-              child: nutritionist.photoUrl == null
-                  ? Icon(Icons.person, color: colors.primary, size: 30)
-                  : null,
+    return NvCard(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: colors.primaryContainer,
+            foregroundImage: nutritionist.photoUrl == null
+                ? null
+                : NetworkImage(nutritionist.photoUrl!),
+            child: nutritionist.photoUrl == null
+                ? Icon(Icons.person, color: colors.primary, size: 30)
+                : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Voc\u{00ea} vai se conectar com',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  nutritionist.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Voc\u{00ea} vai se conectar com',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    nutritionist.name,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

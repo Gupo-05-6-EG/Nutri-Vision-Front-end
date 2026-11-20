@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/ui/nv_widgets.dart';
+
 /// Moldura comum das telas de autenticacao: AppBar, rolagem e largura maxima.
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
@@ -121,19 +123,10 @@ class AuthPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton(
+    return NvButton(
+      label: label,
       onPressed: loading ? null : onPressed,
-      style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-      child: loading
-          ? const SizedBox(
-              height: 22,
-              width: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                semanticsLabel: 'Aguarde, processando solicitação',
-              ),
-            )
-          : Text(label),
+      loading: loading,
     );
   }
 }

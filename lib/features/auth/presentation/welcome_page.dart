@@ -6,6 +6,7 @@ import 'autonomous_signup_page.dart';
 import 'link_code_page.dart';
 import 'login_page.dart';
 import 'widgets/auth_widgets.dart';
+import '../../../core/ui/nv_widgets.dart';
 
 /// Primeira tela para quem nao tem sessao: login ou um dos dois cadastros.
 class WelcomePage extends StatelessWidget {
@@ -33,7 +34,7 @@ class WelcomePage extends StatelessWidget {
                     AuthMessageBanner(message: notice, isError: false),
                     const SizedBox(height: 24),
                   ],
-                  Icon(Icons.eco, size: 96, color: theme.colorScheme.primary),
+                  const _Illustration(),
                   const SizedBox(height: 24),
                   Text(
                     'Bem-vindo ao',
@@ -58,31 +59,26 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
+                  NvButton(
+                    label: 'Login',
+                    icon: Icons.login_rounded,
                     onPressed: () => _open(context, LoginPage(auth: auth)),
-                    child: const Text('Login'),
                   ),
                   const SizedBox(height: 12),
-                  FilledButton.tonal(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
+                  NvButton(
+                    label: 'Tenho nutricionista',
+                    icon: Icons.medical_services_outlined,
                     onPressed: () => _open(context, LinkCodePage(auth: auth)),
-                    child: const Text('Tenho nutricionista'),
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(52),
-                    ),
+                  NvButton(
+                    label: 'Vou seguir sozinho',
+                    icon: Icons.person_outline,
+                    style: NvButtonStyle.secondary,
                     onPressed: () => _open(
                       context,
                       AutonomousSignupPage(auth: auth, screening: screening),
                     ),
-                    child: const Text('Vou seguir sozinho'),
                   ),
                 ],
               ),
@@ -95,5 +91,42 @@ class WelcomePage extends StatelessWidget {
 
   void _open(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
+}
+
+/// Ilustração do protótipo (a tigela) com o selo de XP de boas-vindas.
+class _Illustration extends StatelessWidget {
+  const _Illustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 200,
+        height: 190,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/tigela.png',
+                fit: BoxFit.contain,
+                semanticLabel: 'Tigela de salada',
+                errorBuilder: (context, _, __) => Icon(
+                  Icons.eco,
+                  size: 96,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+            const Positioned(
+              top: 0,
+              right: -8,
+              child: XpBadge(xp: 10, prefix: '+'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

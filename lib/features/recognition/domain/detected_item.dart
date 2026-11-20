@@ -35,8 +35,19 @@ class DetectedItem {
     required this.confidence,
     required this.grams,
     this.tacoId,
+    this.manual = false,
     double? aiGrams,
   }) : aiGrams = aiGrams ?? grams;
+
+  /// Alimento da TACO escolhido pelo paciente (registro manual ou item que a
+  /// IA nao viu). Nao tem confianca de IA.
+  const DetectedItem.manual({
+    required this.name,
+    required int this.tacoId,
+    required this.grams,
+  })  : confidence = 1,
+        manual = true,
+        aiGrams = grams;
 
   /// Item de `GET /analises/{id}`.
   factory DetectedItem.fromJson(Map<String, dynamic> json) {
@@ -64,6 +75,9 @@ class DetectedItem {
   /// Porcao que a IA estimou na foto, para referencia na edicao.
   final double aiGrams;
 
+  /// Adicionado pelo paciente, e nao identificado pela IA.
+  final bool manual;
+
   ConfidenceLevel get level => ConfidenceLevel.of(confidence);
 
   bool get isInTaco => tacoId != null;
@@ -77,6 +91,7 @@ class DetectedItem {
       tacoId: tacoId ?? this.tacoId,
       confidence: confidence,
       grams: grams ?? this.grams,
+      manual: manual,
       aiGrams: aiGrams,
     );
   }
