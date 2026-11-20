@@ -88,16 +88,34 @@ class AuthController extends ChangeNotifier {
   Future<ProfessionalPreview> previewLinkCode(String code) =>
       _repository.previewLinkCode(code);
 
-  Future<LinkedProfessional> linkProfessional(String code) =>
-      _repository.linkProfessional(code);
+  Future<LinkedProfessional> linkProfessional(String code) async {
+    final professional = await _repository.linkProfessional(code);
+    _linkChanged();
+    return professional;
+  }
 
   /// Aceita o vinculo pendente com o nutricionista.
-  Future<void> acceptLink(int professionalId) =>
-      _repository.acceptLink(professionalId);
+  Future<void> acceptLink(int professionalId) async {
+    await _repository.acceptLink(professionalId);
+    _linkChanged();
+  }
 
   /// Recusa o vinculo pendente com o nutricionista.
-  Future<void> refuseLink(int professionalId) =>
-      _repository.refuseLink(professionalId);
+  Future<void> refuseLink(int professionalId) async {
+    await _repository.refuseLink(professionalId);
+    _linkChanged();
+  }
+
+  int _linkChanges = 0;
+
+  /// Muda a cada resgate, aceite ou recusa de vinculo: quem mostra o
+  /// nutricionista ou o convite pendente (o perfil) recarrega.
+  int get linkChanges => _linkChanges;
+
+  void _linkChanged() {
+    _linkChanges++;
+    notifyListeners();
+  }
 
   Future<void> logout() => _endSession();
 
