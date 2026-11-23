@@ -40,8 +40,20 @@ ios/Flutter/flutter_export_environment.sh
 .DS_Store
 Thumbs.db
 
-# Pastas de plataforma geradas por `flutter create --platforms=...`
-/android/
+# Pastas de plataforma geradas por `flutter create --platforms=...`.
+# Do android/ só os manifestos são versionados (permissões, nome do app e HTTP
+# só no debug); o `flutter create` do CI não sobrescreve arquivos existentes.
+/android/*
+!/android/app/
+/android/app/*
+!/android/app/src/
+/android/app/src/*
+!/android/app/src/main/
+!/android/app/src/debug/
+/android/app/src/main/*
+!/android/app/src/main/AndroidManifest.xml
+/android/app/src/debug/*
+!/android/app/src/debug/AndroidManifest.xml
 /ios/
 /web/
 /linux/

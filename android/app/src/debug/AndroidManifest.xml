@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- Só no build de debug: o Flutter precisa de internet para hot reload e
+         breakpoints. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Só no build de debug: libera HTTP para a API local (http://10.0.2.2:8000
+         no emulador, http://<ip-do-pc>:8000 no celular). Produção usa HTTPS. -->
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+</manifest>

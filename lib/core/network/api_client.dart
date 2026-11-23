@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import 'api_exception.dart';
 
@@ -16,6 +18,10 @@ class ApiClient {
   final http.Client _http;
 
   String? authToken;
+
+  /// Chamado quando a API responde 401 *com um token em uso* (sessao expirada
+  /// ou invalidada). Nao dispara em 401 sem token (ex.: senha errada no login).
+  void Function()? onUnauthorized;
 
   Map<String, String> _headers({bool hasBody = false}) => {
         'Accept': 'application/json',
@@ -49,6 +55,31 @@ class ApiClient {
   Future<dynamic> delete(String path) =>
       _send(() => _http.delete(_uri(path), headers: _headers()));
 
+  /// Envia um arquivo em `multipart/form-data` no campo [field] (ex.: a foto
+  /// da refeicao em `POST /analises`), com campos de texto opcionais.
+  Future<dynamic> postFile(
+    String path, {
+    required String field,
+    required Uint8List bytes,
+    required String filename,
+    required String contentType,
+    Map<String, String> fields = const {},
+  }) =>
+      _send(() async {
+        final request = http.MultipartRequest('POST', _uri(path))
+          ..headers.addAll(_headers())
+          ..fields.addAll(fields)
+          ..files.add(
+            http.MultipartFile.fromBytes(
+              field,
+              bytes,
+              filename: filename,
+              contentType: MediaType.parse(contentType),
+            ),
+          );
+        return http.Response.fromStream(await _http.send(request));
+      });
+
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     final http.Response response;
     try {
@@ -60,6 +91,10 @@ class ApiClient {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.statusCode == 204 || response.body.isEmpty) return null;
       return jsonDecode(utf8.decode(response.bodyBytes));
+    }
+
+    if (response.statusCode == 401 && authToken != null) {
+      onUnauthorized?.call();
     }
 
     throw ApiException(
