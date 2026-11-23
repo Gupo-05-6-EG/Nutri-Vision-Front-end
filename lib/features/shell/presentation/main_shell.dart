@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app_services.dart';
@@ -24,7 +26,15 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   late int _index = widget.initialTab;
 
-  void _select(int index) => setState(() => _index = index);
+  void _select(int index) {
+    if (index != _index) {
+      // XP, ofensiva e meta podem ter mudado fora desta aba (refeição
+      // registrada, incentivo do nutricionista): o selo de XP e o Perfil
+      // acompanham sem precisar reabrir o app.
+      unawaited(widget.services.profile.refresh());
+    }
+    setState(() => _index = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +59,7 @@ class _MainShellState extends State<MainShell> {
           children: [
             HomeTab(services: s, onRegister: () => _select(1)),
             RegisterTab(services: s),
-            SocialTab(services: s),
+            SocialTab(services: s, active: _index == 2),
             ProfileTab(services: s),
           ],
         ),
