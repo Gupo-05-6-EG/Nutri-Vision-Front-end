@@ -102,14 +102,17 @@ class _LinkedSignupPageState extends State<LinkedSignupPage> {
 
     if (!mounted) return;
     if (professional.isPending && professional.id != null) {
-      // O vinculo so vale depois que o paciente aceita.
-      await Navigator.of(context).pushReplacement(
+      // O vinculo so vale depois que o paciente aceita. As telas de codigo e
+      // cadastro saem da pilha: com a conta criada, voltar daqui leva ao
+      // Inicio, onde o convite continua no cartao "Convite de vinculo".
+      await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(
           builder: (_) => LinkConfirmationPage(
             auth: widget.auth,
             professional: professional,
           ),
         ),
+        (route) => route.isFirst,
       );
       return;
     }

@@ -31,6 +31,8 @@ import 'package:nutri_vision/features/screening/presentation/screening_page.dart
 import 'support/session.dart';
 
 final invites = <String>[];
+var leaderboardCalls = 0;
+var profileCalls = 0;
 final responses = <String>[];
 
 /// Monta as abas com a API falsa e um paciente (7) logado.
@@ -47,6 +49,7 @@ Future<AppServices> pumpShell(
     api ??
         MockClient((request) async {
           if (request.url.path == ProfileRepository.path(7)) {
+            profileCalls++;
             return jsonResponse(profile ?? profileJson());
           }
           if (request.url.path == MealRepository.dailyConsumptionPath) {
@@ -56,6 +59,7 @@ Future<AppServices> pumpShell(
             return jsonResponse(achievementsJson());
           }
           if (request.url.path == '/gamificacao/leaderboard') {
+            leaderboardCalls++;
             return jsonResponse(rankingJson());
           }
           if (request.url.path == '/amizades' && request.method == 'GET') {
@@ -195,6 +199,24 @@ void main() {
 
     expect(find.text('Nova refeição'), findsOneWidget);
     expect(find.text('Adicionar alimento'), findsOneWidget);
+  });
+
+  testWidgets('voltar para a aba Social recarrega o ranking e o XP',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('Social'));
+    await tester.pumpAndSettle();
+    final first = leaderboardCalls;
+    final profileBefore = profileCalls;
+
+    await tester.tap(find.text('Início'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Social'));
+    await tester.pumpAndSettle();
+
+    expect(leaderboardCalls, first + 1);
+    // O selo de XP (perfil) tambem e atualizado ao trocar de aba.
+    expect(profileCalls, greaterThan(profileBefore));
   });
 
   testWidgets('Social mostra o ranking da semana com voce em destaque',

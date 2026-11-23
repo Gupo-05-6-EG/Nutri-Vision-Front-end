@@ -13,9 +13,14 @@ import '../data/social_repository.dart';
 /// amigos pelo e-mail, pedidos de amizade recebidos e atalhos para desafios e
 /// conquistas.
 class SocialTab extends StatefulWidget {
-  const SocialTab({required this.services, super.key});
+  const SocialTab({required this.services, this.active = true, super.key});
 
   final AppServices services;
+
+  /// Se a aba está visível. As abas ficam vivas no `IndexedStack`, então o
+  /// ranking é recarregado toda vez que o paciente volta para cá (o XP pode
+  /// ter mudado em outra aba).
+  final bool active;
 
   @override
   State<SocialTab> createState() => _SocialTabState();
@@ -31,6 +36,12 @@ class _SocialTabState extends State<SocialTab> {
   void initState() {
     super.initState();
     unawaited(_load());
+  }
+
+  @override
+  void didUpdateWidget(SocialTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) unawaited(_load());
   }
 
   Future<void> _load() async {
